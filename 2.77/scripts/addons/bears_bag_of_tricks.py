@@ -57,11 +57,16 @@ def paste_full_transform(context):
     global copiedLocation
     global copiedRotation
     global copiedScale
-      
-    for ob in context.selected_objects:
-        ob.location = copiedLocation
-        ob.rotation_euler = copiedRotation
-        ob.scale = copiedScale
+
+
+    if (bpy.context.mode == 'OBJECT'):
+        for ob in context.selected_objects:
+            ob.location = copiedLocation
+            ob.rotation_euler = copiedRotation
+            ob.scale = copiedScale
+    if (bpy.context.mode == 'POSE'):
+        return None
+        
 
 class class_copy_full_transform(bpy.types.Operator):
     """Copy Full Transform"""
@@ -654,6 +659,47 @@ class class_bear_edit_normals_setup(bpy.types.Operator):
     def execute(self, context):
         edit_normals_setup(context)
         return {'FINISHED'}
+##############################################################
+#            SET VERTEX COLORS FROM EDIT MODE
+##############################################################
+
+def set_vertex_colors_from_edit_mode(context):
+    obj = bpy.context.edit_object
+
+    materials = bpy.context.edit_object.data.materials
+
+    material_id = bpy.context.edit_object.active_material_index
+
+    color = materials[material_id].diffuse_color
+
+    original_use_paint_mask = obj.data.use_paint_mask
+
+    bpy.ops.object.mode_set(mode='VERTEX_PAINT', toggle=False)
+    original_brush_color = bpy.data.brushes['Add'].color
+
+    obj.data.use_paint_mask = True
+    bpy.data.brushes['Add'].color = color
+    bpy.ops.paint.vertex_color_set()
+
+    bpy.data.brushes['Add'].color = original_brush_color
+
+    bpy.ops.object.mode_set(mode='EDIT', toggle=False)   
+
+    obj.data.use_paint_mask = original_use_paint_mask
+
+
+class class_bear_set_vertex_colors_from_edit_mode(bpy.types.Operator):
+    """Set vertex colors on selected faces from edit mode"""
+    bl_idname = "bear.set_vertex_colors_from_edit_mode"
+    bl_label = "Set Vertex Colors"
+
+    @classmethod
+    def poll(cls, context):
+        return bpy.context.edit_object is not None
+
+    def execute(self, context):
+        set_vertex_colors_from_edit_mode(context)
+        return {'FINISHED'}
 
 ##############################################################
 #            BEND SETUP
@@ -1170,9 +1216,27 @@ class class_average_edge_length(bpy.types.Operator):
         bm = bmesh.from_edit_mesh(me)
 
         bm.faces.active = None
-        selected_edges = []
-        for e in bm.edges:
-            print(e.select)
+        selected_edges = [e for e in bm.edges if e.select is True]
+
+        avg_length = 0
+
+        for edge in selected_edges:
+            avg_length += edge.calc_length()
+
+        avg_length /= len(selected_edges)
+
+        for edge in selected_edges:
+
+            diff_from_avg = avg_length - edge.calc_length()
+            v0 = edge.verts[0]
+            v1 = edge.verts[1]
+
+            direction = v0.co - v1.co
+            direction.normalize()
+
+            v0.co += direction * (diff_from_avg * 0.5)
+            v1.co -= direction * (diff_from_avg * 0.5)
+
 
         bmesh.update_edit_mesh(me, True)
 
@@ -1436,6 +1500,30 @@ def bisect_mesh(context, direction):
 
         
 ##############################################################
+#            TOGGLE USE NODES BOOL ON MATERIALS
+##############################################################
+
+class class_material_toggle_use_nodes(bpy.types.Operator):
+    """Material Color To Vertex Color!"""
+    bl_idname = "bear.material_toggle_use_nodes"
+    bl_label = "Toggle \"Use Nodes\""
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+
+        obj = bpy.context.active_object
+
+        for mat in obj.data.materials:
+            mat.use_nodes = not mat.use_nodes
+
+        #material_color_to_vertex_color(context, mix_type='COLOR_ONLY')
+        return {'FINISHED'}
+
+##############################################################
 #                  MATERIAL COLOR TO VERTEX COLOR
 ##############################################################
 
@@ -1450,11 +1538,64 @@ class class_material_color_to_vertex_color(bpy.types.Operator):
     #        return True
 
     def execute(self, context):
-        material_color_to_vertex_color(context)
+        print("\nExecuting material_color_to_vertex_color")
+        material_color_to_vertex_color(context, mix_type='COLOR_ONLY')
+        return {'FINISHED'}
+
+class class_ao_to_vertex_color(bpy.types.Operator):
+    """AO To Vertex Color!"""
+    bl_idname = "bear.ao_to_vertex_color"
+    bl_label = "AO to Vcol"
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+        print("\nExecuting ao_to_vertex_color")
+        material_color_to_vertex_color(context, mix_type='AO_ONLY')
+        return {'FINISHED'}
+
+class class_color_ao_mix_color_to_vertex_color(bpy.types.Operator):
+    """AO To Vertex Color!"""
+    bl_idname = "bear.color_ao_mix_to_vertex_color"
+    bl_label = "AO*Color to Vcol"
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+        print("\nExecuting color_ao_mix_to_vertex_color")
+        material_color_to_vertex_color(context, mix_type='COLOR_AO_MIX')
+        return {'FINISHED'}
+
+class class_vertex_normals_to_vertex_color(bpy.types.Operator):
+    """AO To Vertex Color!"""
+    bl_idname = "bear.color_ao_mix_to_vertex_color"
+    bl_label = "AO*Color to Vcol"
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+        print("\nExecuting color_ao_mix_to_vertex_color")
+        material_color_to_vertex_color(context, mix_type='COLOR_AO_MIX')
         return {'FINISHED'}
 
 
-def material_color_to_vertex_color(context):
+def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=1.0):
+
+    valid_mix_types = ['COLOR_ONLY', 'AO_ONLY', 'COLOR_AO_MIX', 'NORMAL_DIR']
+
+    if(mix_type not in valid_mix_types):
+        print("Material color to vertex color: Invalid mix type...")
+        return
+
     C = bpy.context
     S = bpy.context.scene
 
@@ -1475,12 +1616,130 @@ def material_color_to_vertex_color(context):
     print("bake_type =", S.render.bake_type)
     print("use_bake_to_vertex_color =", S.render.use_bake_to_vertex_color)
 
-    for obj in objects:
-        obj.select = True
-        if(len(obj.data.vertex_colors) == 0):
-            obj.data.vertex_colors.new()
-        bpy.ops.object.bake_image()
-        obj.select = False
+    print("mix_type =", mix_type)
+    if(mix_type == 'COLOR_ONLY'):
+        print("REGULAR COLOR PLEASE BYE")
+        for obj in objects:
+            if (obj.type != 'MESH'):
+                print(obj.type)
+                continue
+            obj.select = True
+
+            if(len(obj.data.vertex_colors) > 0):
+                for l in obj.data.vertex_colors:
+                    print("LAYER NAME:", l.name)
+                    if(l.name == "NGon Face-Vertex"):
+                        continue
+                    obj.data.vertex_colors.remove(l)
+            else:
+                print("len, " + str(len(obj.data.vertex_colors)))
+
+            print("\nShould be empty:")
+
+            for layer in obj.data.vertex_colors:
+                print(layer)
+
+            print("_______")
+            
+            obj.data.vertex_colors.new("Col")
+            obj.data.vertex_colors["Col"].active_render = True
+            bpy.ops.object.bake_image()
+
+            obj.select = False
+
+    elif(mix_type == 'AO_ONLY'):
+        print("AO ONLY OKAAYYY")
+        for obj in objects:
+            if (obj.type != 'MESH'):
+                continue
+            obj.select = True
+
+            if(len(obj.data.vertex_colors) > 0):
+                for l in obj.data.vertex_colors:
+                    obj.data.vertex_colors.remove(l)
+
+            layers = obj.data.vertex_colors
+            
+            layers.new("AO")
+            layers["AO"].active_render = True
+            S.render.bake_type = 'AO'
+            
+            bpy.ops.object.bake_image()
+
+            obj.select = False
+    elif(mix_type == 'NORMAL_DIR'):
+        for obj in objects:
+            if (obj.type != 'MESH'):
+                continue
+            obj.select = True
+            layers = obj.data.vertex_colors
+
+            if(len(layers) > 0):
+                for l in layers:
+                    layers.remove(l)
+            
+            layers.new("Col")
+            layers["Col"].active_render = True
+            bpy.ops.object.bake_image()
+
+            layers.new("AO")
+            layers["AO"].active_render = True
+            S.render.bake_type = 'AO'
+            
+            bpy.ops.object.bake_image()
+
+            layers.new("NRM")
+
+            for i, vert in enumerate(layers["NRM"].data):
+                layers["NRM"].data[i].color = obj.data.vertices[i].normal
+
+            layers.remove(layers["Col"])
+            layers.remove(layers["AO"])
+            layers["NRM"].name = "Col"
+
+            bpy.ops.object.mode_set(mode='VERTEX_PAINT', toggle=True)   
+            bpy.ops.paint.vertex_color_smooth()
+            bpy.ops.object.mode_set(mode='OBJECT', toggle=True)   
+            obj.select = False
+
+    elif(mix_type == 'COLOR_AO_MIX'):
+        print("\nCOLOR AO MIX AYYYYY")
+        for obj in objects:
+            if (obj.type != 'MESH'):
+                continue
+            obj.select = True
+            layers = obj.data.vertex_colors
+
+            if(len(layers) > 0):
+                for l in layers:
+                    layers.remove(l)
+            
+            layers.new("Col")
+            layers["Col"].active_render = True
+            bpy.ops.object.bake_image()
+
+            layers.new("AO")
+            layers["AO"].active_render = True
+            S.render.bake_type = 'AO'
+            
+            bpy.ops.object.bake_image()
+
+            layers.new("MIX")
+
+            for i, vert in enumerate(layers["MIX"].data):
+                layers["MIX"].data[i].color = (layers["Col"].data[i].color[0] * layers["AO"].data[i].color[0], layers["Col"].data[i].color[1] * layers["AO"].data[i].color[1], layers["Col"].data[i].color[2] * layers["AO"].data[i].color[2])
+
+            layers.remove(layers["Col"])
+            layers.remove(layers["AO"])
+            layers["MIX"].name = "Col"
+
+            bpy.ops.object.mode_set(mode='VERTEX_PAINT', toggle=True)   
+            bpy.ops.paint.vertex_color_smooth()
+            bpy.ops.object.mode_set(mode='OBJECT', toggle=True)   
+            obj.select = False
+    else:
+        print("NOOOOOOOOOOOOOOOO")
+
 
     S.render.engine = original_render_engine
     S.render.bake_type = original_bake_type
@@ -1489,12 +1748,104 @@ def material_color_to_vertex_color(context):
     for obj in objects:
         obj.select = True
 
+def multiply_colors(col1, col2):
+    return (col1[0] * col2[0], col1[1] * col2[1], col1[2] * col2[2])
+
+
+###############################################################
+##             VIEWPORT COLOR TO DIFFUSE COLOR
+###############################################################
+#
+#class class_viewport_color_to_diffuse(bpy.types.Operator):
+#    """Viewport Color To Diffuse Color!"""
+#    bl_idname = "bear.viewport_color_to_diffuse"
+#    bl_label = "Viewport color to diffuse"
+#
+#    #@classmethod
+#    #def poll(cls, context):
+#    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+#    #        return True
+#
+#    def execute(self, context):
+#        material_color_to_vertex_color(context)
+#        return {'FINISHED'}
+#
+#
+#def material_color_to_vertex_color(context):
+#    C = bpy.context
+#    S = bpy.context.scene
+#
+#    print(S.render.engine)
+#
+#    objects = C.selected_objects
+#    bpy.ops.object.select_all(action='DESELECT')
+#
+#    original_render_engine = S.render.engine
+#    original_bake_type = S.render.bake_type
+#    original_vcol_bake = S.render.use_bake_to_vertex_color
+#
+#    S.render.engine = 'BLENDER_RENDER'
+#    S.render.bake_type = 'TEXTURE'
+#    S.render.use_bake_to_vertex_color = True
+#
+#    print("engine =", S.render.engine)
+#    print("bake_type =", S.render.bake_type)
+#    print("use_bake_to_vertex_color =", S.render.use_bake_to_vertex_color)
+#
+#    for obj in objects:
+#        obj.select = True
+#        if(len(obj.data.vertex_colors) == 0):
+#            obj.data.vertex_colors.new()
+#        bpy.ops.object.bake_image()
+#        obj.select = False
+#
+#    S.render.engine = original_render_engine
+#    S.render.bake_type = original_bake_type
+#    S.render.use_bake_to_vertex_color = original_vcol_bake
+#
+#    for obj in objects:
+#        obj.select = True
+#
+
+##############################################################
+#             VIEWPORT COLOR TO DIFFUSE COLOR
+##############################################################
+
+class class_edit_shape_keys(bpy.types.Operator):
+    """Viewport Color To Diffuse Color!"""
+    bl_idname = "bear.edit_shape_keys"
+    bl_label = "Edit Shape Keys"
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+        edit_shape_keys(context)
+        return {'FINISHED'}
+
+
+def edit_shape_keys(context):
+    C = bpy.context
+    S = bpy.context.scene
+
+    obj = C.edit_object
+    keys = obj.data.shape_keys.key_blocks
+
+    #for i in len(obj.data.shape_keys):
+    #    print(obj.data.shape_keys[i])
+
+
 
 ##############################################################
 #             TOOL SHELF BUTTONS
 ##############################################################
+#class property_holder(bpy.types.Scene):
 
-
+#
+# Image editor buttons
+#
 class class_bbot_uv_buttons(bpy.types.Panel):
     bl_category = "Tools"
     bl_label = "Bear's Bag of Tricks"
@@ -1508,11 +1859,45 @@ class class_bbot_uv_buttons(bpy.types.Panel):
         row.operator("bear.scale_uvs_to_bounds", text="Scale UVs To Bounds")
 
 
+#
+# Material buttons
+#
+class class_bbot_material_buttons(bpy.types.Panel):
+    bl_label = "Bear's Material Utils"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "material"
+ 
+    def draw(self, context):
+        self.layout.operator("bear.material_color_to_vertex_color", text="Material Colors To Vertex Colors")
+        self.layout.operator("bear.material_toggle_use_nodes", text="Toggle use_nodes")
+
+#
+# Modifier buttons
+#
+class class_bbot_modifier_buttons(bpy.types.Panel):
+    bl_label = "Bear's Material Utils"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "modifiers"
+ 
+    def draw(self, context):
+        self.layout.operator("bear.fancy_array_setup")
+        self.layout.operator("bear.array_setup")
+        self.layout.operator("bear.mirror_setup")
+        self.layout.operator("bear.bend_setup")
+        self.layout.operator("bear.edit_normals_setup")
+        self.layout.operator("bear.double_sided_solidify_setup")
+
+#
+# Main buttons
+#
 class class_bbot_buttons(bpy.types.Panel):
     bl_category = "Custom"
     bl_label = "Bear's Bag of Tricks"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
+
 
     def draw(self, context):
         layout = self.layout
@@ -1548,9 +1933,13 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.copy_modifiers_to_linked_copies")
         col.operator("bear.link_and_copy_modifiers")
         col.operator("bear.camera_setup_ortho")
-        col.operator("bear.material_color_to_vertex_color")
         col.operator("bear.slice_at_verts")
         col.operator("bear.verts_to_selected")
+        col.operator("bear.material_color_to_vertex_color")
+        col.operator("bear.ao_to_vertex_color")
+        col.operator("bear.color_ao_mix_to_vertex_color")
+        #col.prop(bpy.context.active_object, "edit_mode_vertex_color", text="Text???")
+        col.operator("bear.set_vertex_colors_from_edit_mode")
 
         col = layout.column(align=True)
         col.label(text="Modifiers")
@@ -1570,12 +1959,13 @@ class class_bbot_menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator("wm.open_mainfile")
-        layout.operator("wm.save_as_mainfile").copy = True
-
-        layout.operator("object.modifier_add")
-
-        layout.label(text="Hello world!", icon='WORLD_DATA')
+        layout.operator("bear.edit_shape_keys")
+        #layout.operator("wm.open_mainfile")
+        #layout.operator("wm.save_as_mainfile").copy = True
+#
+        #layout.operator("object.modifier_add")
+#
+        #layout.label(text="Hello world!", icon='WORLD_DATA')
 
 script_classes = [
     class_apply_linked_scale,
@@ -1585,6 +1975,7 @@ script_classes = [
     class_bbot_buttons,
     class_bbot_menu,
     class_bbot_uv_buttons,
+    class_bbot_material_buttons,
     class_bbotaddonprefs,
     class_bear_array_setup,
     class_bear_bend_setup,
@@ -1620,6 +2011,13 @@ script_classes = [
     class_verts_to_selected,
     class_uv_layout_from_obj,
     class_material_color_to_vertex_color,
+    class_material_toggle_use_nodes,
+    class_color_ao_mix_color_to_vertex_color,
+    class_ao_to_vertex_color,
+    class_bear_set_vertex_colors_from_edit_mode,
+    class_bbot_modifier_buttons,
+    class_edit_shape_keys,
+    #property_holder,
 ]
 
 def register():

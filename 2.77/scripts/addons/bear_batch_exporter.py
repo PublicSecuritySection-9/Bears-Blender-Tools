@@ -48,6 +48,7 @@ class ExportObjects(Operator, ExportHelper):
         items=(('KEEP', "Keep Original", ""),
                ('CLEAR', "Clear All", ""),
                ('CONSOLIDATE', "Consolidate", ""),
+               ('CLEAR_WITH_VERTEX_COLOR', "Material To Vertex Color", "")
                ),
         default='KEEP',
         )
@@ -107,7 +108,7 @@ class ExportObjects(Operator, ExportHelper):
             description=("Bake space transform into object data, avoids getting unwanted rotations to objects when "
                          "target space is not aligned with Blender's space "
                          "(WARNING! experimental option, might give odd/wrong results)"),
-            default=False,
+            default=True,
             )
 
     object_types = EnumProperty(
@@ -353,34 +354,65 @@ class ExportObjects(Operator, ExportHelper):
 
 def selected_to_single_fbx(context, self, new_name):
 
+    supported_types = ['MESH', 'CURVE']
+
     if(self.e_clear_materials == 'CLEAR'):
         objects = bpy.context.selected_objects
-        old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
+        old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects if obj.type in supported_types}
 
         for obj in objects:
-            obj.data.materials.clear()
+            if(obj.type in supported_types):
+                obj.data.materials.clear()
 
         export(self, new_name)
 
         for obj in objects:
-            for mat in old_materials[obj]:
-                obj.data.materials.append(mat)
+            if(obj.type in supported_types):
+                for mat in old_materials[obj]:
+                    obj.data.materials.append(mat)
+    elif(self.e_clear_materials == 'CLEAR_WITH_VERTEX_COLOR'):
+        bpy.ops.bear.material_color_to_vertex_color()
+        objects = bpy.context.selected_objects
+        old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects if obj.type in supported_types}
 
+        for obj in objects:
+            if(obj.type in supported_types):
+                obj.data.materials.clear()
+
+        export(self, new_name)
+
+        for obj in objects:
+            if(obj.type in supported_types):
+                for mat in old_materials[obj]:
+                    obj.data.materials.append(mat)
     elif(self.e_clear_materials == 'CONSOLIDATE'):
-        keywords = ['Window', 'Glowing', 'Surface']
+        keywords = ['Window', 'Glowing', 'Surface', 'Glass', 'FX']
+        generic_material_name = '__Other'
 
         objects = bpy.context.selected_objects
 
         old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
         new_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
+        #new_materials = {}
+
+        generic_material = None
+        try:
+            generic_material = bpy.data.materials[generic_material_name]
+        except KeyError:     
+            bpy.data.materials.new(generic_material_name)
+            generic_material = bpy.data.materials[generic_material_name]
 
         for obj in objects:
             same_materials = {keyword: [mat for mat in new_materials[obj] if mat.name.startswith(keyword)] for keyword in keywords}
-            
+            #same_materials = {k: v for k, v in same_materials.items() if v != []}
+
             for i, mat in enumerate(new_materials[obj]):
-                for keyword in keywords:
+                for j, keyword in enumerate(keywords):
                     if(mat.name.startswith(keyword)):
                         new_materials[obj][i] = same_materials[keyword][0]
+                        break
+                    else:
+                        new_materials[obj][i] = generic_material
 
         for obj in objects:
             obj.data.materials.clear()
@@ -390,11 +422,15 @@ def selected_to_single_fbx(context, self, new_name):
         export(self, new_name)
 
         for obj in objects:
+            obj.data.materials.clear()
             for mat in old_materials[obj]:
                 obj.data.materials.append(mat)
 
+        print(new_materials)
+
     elif(self.e_clear_materials == 'KEEP'):
         export(self, new_name)
+
 
 
 def export(self, new_name):
