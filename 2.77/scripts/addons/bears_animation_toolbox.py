@@ -40,7 +40,7 @@ def export_single_action(context, filepath):
 def export_all_actions(context, filepath):
     armature = bpy.context.active_object
     scene = bpy.context.scene
-    
+
     original_action = armature.animation_data.action
 
     # Loop through all actions in blend file and export all with fake user flag on
@@ -144,6 +144,9 @@ def export_rigged_character(context, filepath):
                 if(modifier.type == 'ARMATURE' and modifier.object == armature):
                     characterMesh = obj
 
+    original_pose_position = armature.pose_position
+    armature.pose_position = 'REST'
+
     characterMesh.select = True
 
     #bpy.ops.bear.material_color_to_vertex_color()
@@ -156,6 +159,7 @@ def export_rigged_character(context, filepath):
     filename = filepath.replace(".fbx", "").replace(".FBX", "") + ".fbx"
     export_selected(filename, False)
 
+    armature.pose_position = 'POSE'
     armature.select = False
 
     for mat in old_materials:
@@ -165,6 +169,7 @@ def export_rigged_character(context, filepath):
 
     for obj in original_selected_objects:
         obj.select = True
+    
 
     bpy.context.scene.objects.active = ao
 
