@@ -30,36 +30,166 @@ from datetime import datetime
 ##############################################################
 
 def export_single_action(context, filepath):
+
     armature = bpy.context.active_object
     action = armature.animation_data.action
-
     scene = bpy.context.scene
 
+    export_action_internal(context, armature, action, scene, filepath)
+
+def export_all_actions(context, filepath):
+    armature = bpy.context.active_object
+    scene = bpy.context.scene
+
+    original_action = armature.animation_data.action
+
+    # Loop through all actions in blend file and export all with fake user flag on
+    for action in bpy.data.actions:
+        if(action.use_fake_user != True):
+            continue
+        export_action_internal(context, armature, action, scene, filepath)
+
+    armature.animation_data.action = original_action
+
+def export_action_internal(context, armature, action, scene, filepath):
+    # Store original values
     original_frame_start = scene.frame_start
     original_frame_end = scene.frame_end
+
+    # Set frame range to action max min
     scene.frame_start = action.frame_range[0]
     scene.frame_end = action.frame_range[1]
 
+    # Prep filename
     filename = filepath + "@" + action.name + ".fbx"
 
+    # Add dummy object
+    # This is done to have control over the final hierarchy in Unity.
     bpy.ops.object.empty_add(type='PLAIN_AXES')
     empty = bpy.context.scene.objects[-1]
-    empty.name = "Empty"
+    empty.name = "_DUMMY"
 
+    # Prep selection for export
     empty.select = True
     armature.select = True
 
-    export(filename)
+    export_selected(filename)
 
+    # Restore original values
     scene.frame_start = int(original_frame_start)
     scene.frame_end = int(original_frame_end)
 
+    # Delete dummy object
     armature.select = False
     bpy.ops.object.delete()
+
     armature.select = True
     bpy.context.scene.objects.active = armature
 
-def export(filename, include_animation=True):
+
+class class_export_single_action(bpy.types.Operator, ExportHelper):
+    """Toggle deform status for bones not required by mecanim"""
+    bl_idname = "bear.export_single_action"
+    bl_label = "Export Current Action"
+    filename_ext = ""
+
+    filepath = ""
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is not 0
+
+    def execute(self, context):
+        export_single_action(context, self.filepath)
+        return {'FINISHED'}
+
+class class_export_all_actions(bpy.types.Operator, ExportHelper):
+    """Toggle deform status for bones not required by mecanim"""
+    bl_idname = "bear.export_all_actions"
+    bl_label = "Export All Actions"
+    filename_ext = ""
+
+    filepath = ""
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is not 0
+
+    def execute(self, context):
+        export_all_actions(context, self.filepath)
+        return {'FINISHED'}
+
+def export_rigged_character(context, filepath):
+    armature = None
+    characterMesh = None
+    C = bpy.context
+
+    original_selected_objects = C.selected_objects
+
+    ao = C.active_object
+
+    for obj in C.selected_objects:
+        obj.select = False
+
+    if (ao.type == 'MESH'):
+        characterMesh = ao
+        for modifier in ao.modifiers:
+            if (modifier.type == 'ARMATURE'):
+                armature = modifier.object
+    elif (ao.type == 'ARMATURE'):
+        armature = ao
+        bpy.ops.object.select_grouped(extend=False, type='CHILDREN')
+        for obj in C.selected_objects:
+            for modifier in obj.modifiers:
+                if(modifier.type == 'ARMATURE' and modifier.object == armature):
+                    characterMesh = obj
+
+    original_pose_position = armature.pose_position
+    armature.pose_position = 'REST'
+
+    characterMesh.select = True
+
+    #bpy.ops.bear.material_color_to_vertex_color()
+
+    old_materials = [mat for mat in characterMesh.data.materials]
+    characterMesh.data.materials.clear()
+
+    armature.select = True
+
+    filename = filepath.replace(".fbx", "").replace(".FBX", "") + ".fbx"
+    export_selected(filename, False)
+
+    armature.pose_position = 'POSE'
+    armature.select = False
+
+    for mat in old_materials:
+        characterMesh.data.materials.append(mat)
+
+    characterMesh.select = False
+
+    for obj in original_selected_objects:
+        obj.select = True
+    
+
+    bpy.context.scene.objects.active = ao
+
+class class_export_rigged_character(bpy.types.Operator, ExportHelper):
+    """Toggle deform status for bones not required by mecanim"""
+    bl_idname = "bear.export_rigged_character"
+    bl_label = "Export Rigged Character"
+    filename_ext = ""
+
+    filepath = ""
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is not 0
+
+    def execute(self, context):
+        export_rigged_character(context, self.filepath)
+        return {'FINISHED'}
+
+def export_selected(filename, include_animation=True, override_bake_anim_step=1.0):
     bpy.ops.export_scene.fbx(
     filepath=filename,
     check_existing=True,
@@ -94,7 +224,7 @@ def export(filename, include_animation=True):
     bake_anim_use_nla_strips=False,
     bake_anim_use_all_actions=False,
     bake_anim_force_startend_keying=True,
-    bake_anim_step=0.5, #Fix for skating bug?
+    bake_anim_step=override_bake_anim_step,
     bake_anim_simplify_factor=0.0,
     use_anim=include_animation,
     use_anim_action_all=False,
@@ -106,144 +236,6 @@ def export(filename, include_animation=True):
     batch_mode='OFF',
     use_batch_own_dir=True,
     use_metadata=True)
-
-def export_all_actions(context, filepath):
-    #Export all actions with fake users...!
-    #Can be changed to use a prefix or something else instead
-    armature = bpy.context.active_object
-    scene = bpy.context.scene
-    original_action = armature.animation_data.action
-
-    original_frame_start = scene.frame_start
-    original_frame_end = scene.frame_end
-
-    for action in bpy.data.actions:
-        if(action.use_fake_user == True):
-            armature.animation_data.action = action
-
-            scene.frame_start = action.frame_range[0]
-            scene.frame_end = action.frame_range[1]
-
-            filename = filepath + "@" + action.name + ".fbx"
-
-            bpy.ops.object.empty_add(type='PLAIN_AXES')
-            empty = bpy.context.scene.objects[-1]
-            empty.name = "Empty"
-
-            empty.select = True
-            armature.select = True
-
-            export(filename)
-
-            scene.frame_start = int(original_frame_start)
-            scene.frame_end = int(original_frame_end)
-
-            armature.select = False
-            bpy.ops.object.delete()
-            armature.select = True
-            bpy.context.scene.objects.active = armature 
-
-    scene.frame_start = int(original_frame_start)
-    scene.frame_end = int(original_frame_end)
-    armature.animation_data.action = original_action
-
-def export_rigged_character(context, filepath):
-
-    armature = None
-    characterMesh = None
-    C = bpy.context
-
-    original_selected_objects = C.selected_objects
-
-    ao = C.active_object
-
-    for obj in C.selected_objects:
-        obj.select = False
-
-    if (ao.type == 'MESH'):
-        characterMesh = ao
-        for modifier in ao.modifiers:
-            if (modifier.type == 'ARMATURE'):
-                armature = modifier.object
-    elif (ao.type == 'ARMATURE'):
-        armature = ao
-        bpy.ops.object.select_grouped(extend=False, type='CHILDREN')
-        for obj in C.selected_objects:
-            for modifier in obj.modifiers:
-                if(modifier.type == 'ARMATURE' and modifier.object == armature):
-                    characterMesh = obj
-
-    characterMesh.select = True
-
-    #bpy.ops.bear.material_color_to_vertex_color()
-
-    old_materials = [mat for mat in characterMesh.data.materials]
-    characterMesh.data.materials.clear()
-
-    armature.select = True
-
-    filename = filepath.replace(".fbx", "").replace(".FBX", "") + ".fbx"
-    export(filename, False)
-
-    armature.select = False
-
-    for mat in old_materials:
-        characterMesh.data.materials.append(mat)
-
-    characterMesh.select = False
-
-    for obj in original_selected_objects:
-        obj.select = True
-
-    bpy.context.scene.objects.active = ao
-
-class class_export_single_action(bpy.types.Operator, ExportHelper):
-    """Toggle deform status for bones not required by mecanim"""
-    bl_idname = "bear.export_single_action"
-    bl_label = "Export Current Action"
-    filename_ext = ""
-
-    filepath = ""
-
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) is not 0
-
-    def execute(self, context):
-        export_single_action(context, self.filepath)
-        return {'FINISHED'}
-
-class class_export_all_actions(bpy.types.Operator, ExportHelper):
-    """Toggle deform status for bones not required by mecanim"""
-    bl_idname = "bear.export_all_actions"
-    bl_label = "Export All Actions"
-    filename_ext = ""
-
-    filepath = ""
-
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) is not 0
-
-    def execute(self, context):
-        export_all_actions(context, self.filepath)
-        return {'FINISHED'}
-
-class class_export_rigged_character(bpy.types.Operator, ExportHelper):
-    """Toggle deform status for bones not required by mecanim"""
-    bl_idname = "bear.export_rigged_character"
-    bl_label = "Export Rigged Character"
-    filename_ext = ""
-
-    filepath = ""
-
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) is not 0
-
-    def execute(self, context):
-        export_rigged_character(context, self.filepath)
-        return {'FINISHED'}
 
 ##############################################################
 #            RIG SETUP FUNCTIONS
@@ -444,7 +436,7 @@ class class_add_extra_bones(bpy.types.Operator):
 
 
 ##############################################################
-#               VERIFY RIG COMPATIBILITY
+#               MAKE PLAYBLAST
 ##############################################################
 
 def make_playblast(context):
@@ -512,8 +504,8 @@ def make_playblast(context):
 
 
 class class_make_playblast(bpy.types.Operator):
-    """Verify rig compatibility with mecanim"""
-    bl_idname = "bear.make_playblast"
+    """Render playblast to folder beside blend file"""
+    bl_idname = "bear.render_playblast"
     bl_label = "Export Playblast"
 
     @classmethod
@@ -571,9 +563,12 @@ class class_bear_rig_buttons(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.label(text="Export")
-        col.operator("bear.make_playblast")
         col.operator("bear.export_single_action")
         col.operator("bear.export_all_actions")
+        col.separator()
+        col.operator("bear.export_rigged_character")
+        col.label(text="Render")
+        col.operator("bear.render_playblast")
         col.label(text="Setup")
         row = col.row()
         col.operator("bear.setup_deformable_bones")
@@ -582,7 +577,6 @@ class class_bear_rig_buttons(bpy.types.Panel):
         row.operator("bear.delete_unused_bones")
         col.operator("bear.rename_bones")
         col.operator("bear.add_extra_bones")
-        col.operator("bear.export_rigged_character")
 
 script_classes = [
     class_bear_rig_buttons,
