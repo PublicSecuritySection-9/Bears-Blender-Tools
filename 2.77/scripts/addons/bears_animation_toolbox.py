@@ -73,6 +73,8 @@ def export_action_internal(context, armature, action, scene, filepath):
     empty.select = True
     armature.select = True
 
+    armature.animation_data.action = action
+
     export_selected(filename)
 
     # Restore original values
