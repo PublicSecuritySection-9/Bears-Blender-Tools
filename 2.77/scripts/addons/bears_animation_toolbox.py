@@ -549,6 +549,56 @@ class class_verify_rig_compatibility(bpy.types.Operator):
         verify_rig_compatibility(context)
         return {'FINISHED'}
 
+##############################################################
+#               ALIGN FUNCTIONS
+##############################################################
+
+
+class class_align_to_bones(bpy.types.Operator):
+    bl_idname = "bear.align_to_bones"
+    bl_label = "Object rotation to pose bone rotation"
+
+    #align_mode = bpy.props.EnumProperty(
+    #    name="Align Mode",
+    #    description="How Should Things Be Aligned",
+    #    items=(('OBJECTS_TO_POSE_BONE', "Objects to Pose Bone", "Align selected objects to active pose bone")
+    #           ),
+    #    default="OBJECTS_TO_POSE_BONE"
+    #    )
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not Null
+
+    def execute(self, context):
+        #if(self.align_mode is 'OBJECTS_TO_POSE_BONE'):
+        align_objects_to_pose_bone(context)
+
+        return {'FINISHED'}
+
+def align_objects_to_pose_bone(context):
+    print("Aligning objects to pose bone")
+    C = bpy.context
+
+    pb = C.active_pose_bone
+
+    for obj in C.selected_objects:
+        if(obj == C.active_object):
+            continue
+        print(obj.name, obj.rotation_mode)
+        
+        loc, rot, scale = pb.matrix.decompose()
+        
+        if(obj.rotation_mode == 'QUATERNION'):
+            print("Aligning quaternion rotations")
+            obj.rotation_quaternion = rot
+            
+        elif(obj.rotation_mode == 'XYZ'):
+            print("Aligning euler rotations")
+            obj.rotation_euler = rot.to_euler()
+            
+        else:
+            print("Rotation mode not supported. Will not align objects!")
 
 ##############################################################
 #             TOOL SHELF BUTTONS
@@ -563,6 +613,10 @@ class class_bear_rig_buttons(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        col = layout.column(align=True)
+        col.label(text="Align")
+        col.operator("bear.align_to_bones")
+
         col = layout.column(align=True)
         col.label(text="Export")
         col.operator("bear.export_single_action")
@@ -591,6 +645,7 @@ script_classes = [
     class_export_single_action,
     class_export_all_actions,
     class_export_rigged_character,
+    class_align_to_bones,
     class_make_playblast,
 ]
 
