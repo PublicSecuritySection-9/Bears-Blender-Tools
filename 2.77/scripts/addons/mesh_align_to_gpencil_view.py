@@ -440,11 +440,11 @@ def check_if_object_gp_exists(context):
 
 
 def check_if_scene_gp_exists(context):
-    sceneGP = bpy.context.scene.grease_pencil
+    gps = bpy.context.scene.grease_pencil
 
-    if(sceneGP is not None):
-        if(len(sceneGP.layers)>0):
-            if(len(sceneGP.layers[-1].active_frame.strokes) > 0):
+    if(gps is not None):
+        if(len(gps.layers)>0):
+            if(len(gps.layers[-1].active_frame.strokes) > 0):
                 return True
 
     return False
