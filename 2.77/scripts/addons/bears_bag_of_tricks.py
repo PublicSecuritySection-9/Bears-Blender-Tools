@@ -263,8 +263,8 @@ class class_apply_linked_transform(bpy.types.Operator):
 
 def bear_branches(context):
     branch_radius = 0.25
-    scn = bpy.context.scene
-    gps = bpy.context.blend_data.grease_pencil[-1].layers.active.active_frame
+    S = bpy.context.scene
+    gps = S.grease_pencil.layers[-1].active_frame
     cu = bpy.data.curves.new("GpencilBranch", 'CURVE')
     cu.dimensions = '3D'
     cu.bevel_depth = branch_radius
@@ -288,8 +288,8 @@ def bear_branches(context):
     gps.clear()
 
     ob = bpy.data.objects.new("GPencil Branch.000", cu)
-    scn.objects.link(ob)
-    scn.objects.active = ob
+    S.objects.link(ob)
+    S.objects.active = ob
     bpy.ops.object.select_all(action='DESELECT')
     ob.select = True
 
@@ -309,13 +309,7 @@ class class_bear_branches(bpy.types.Operator):
     def poll(cls, context):
         if bpy.context.mode != 'OBJECT':
             return False
-        elif len(bpy.data.grease_pencil) is 0:
-            return False
-        elif len(bpy.data.grease_pencil[-1].layers) is 0:
-            return False
-        elif bpy.data.grease_pencil[-1].layers.active.active_frame is None:
-            return False
-        elif len(bpy.data.grease_pencil[-1].layers.active.active_frame.strokes) is 0:
+        elif check_if_gp_exists() == False:
             return False
         else:
             return True
@@ -323,6 +317,17 @@ class class_bear_branches(bpy.types.Operator):
     def execute(self, context):
         bear_branches(context)
         return {'FINISHED'}
+
+    def check_if_gp_exists():
+        sceneGP = bpy.context.scene.grease_pencil
+
+        if(sceneGP is not None):
+            if(len(sceneGP.layers)>0):
+                if(len(sceneGP.layers[-1].active_frame.strokes) > 0):
+                    return True
+
+        return False
+
 
 ##############################################################
 #            TAPER CURVE POINT SCALE
@@ -429,7 +434,6 @@ def array_setup(context):
 
     deg2rad = 0.0174532925
 
-
     ob = bpy.context.active_object
 
     array1 = ob.modifiers.new("Array", type='ARRAY')
@@ -450,7 +454,7 @@ def array_setup(context):
 class class_bear_array_setup(bpy.types.Operator):
     """Initialize a regular array modifier"""
     bl_idname = "bear.array_setup"
-    bl_label = "Setup Array"
+    bl_label = "Array"
 
     @classmethod
     def poll(cls, context):
@@ -542,7 +546,7 @@ def fancy_array_setup(context):
 class class_bear_fancy_array_setup(bpy.types.Operator):
     """Initialize a fancy smancy array!"""
     bl_idname = "bear.fancy_array_setup"
-    bl_label = "Setup Fancy Array"
+    bl_label = "Fancy Array"
 
     @classmethod
     def poll(cls, context):
@@ -1123,7 +1127,7 @@ class class_copy_image_to_temp(bpy.types.Operator):
 class class_uv_layout_from_obj(bpy.types.Operator):
 
     bl_idname = "uv.uv_layout_from_obj"
-    bl_label = "UV Layout From OBJ"
+    bl_label = "UnwrapV Layout From OBJ"
 
     filepath = bpy.props.StringProperty(subtype="FILE_PATH")
     filename = bpy.props.StringProperty(subtype="FILE_NAME")
@@ -1948,40 +1952,46 @@ class class_bbot_buttons(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        col = layout.column(align=True)
+        col = layout.column()
         col.operator("bear.save_incremental")
         col = layout.column(align=True)
         col.label(text="Transform")
-        row = col.row()
+        row = col.row(align=True)
         row.operator("object.copy_full_transform", text="Copy")
         row.operator("object.paste_full_transform", text="Paste")
-        col = layout.column(align=True)
         col.label(text="Apply Linked Transforms")
-        col.operator("object.apply_linked_scale", text="Scale")
-        col.operator("object.apply_linked_rotation", text="Rotation")
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.operator("object.apply_linked_scale", text="Scale")
+        row.operator("object.apply_linked_rotation", text="Rotation")
         col.operator("object.apply_linked_transform", text="Both")
         col = layout.column(align=True)
-        col.label(text="Various")
-        row = col.row()
-        col.operator("uv.uv_layout_from_obj")
-        col.operator("object.import_latest_unity_exported_obj")
-        col.operator("bear.branches")
-        col.operator("bear.unwrap_tubes")
-        col.operator("bear.taper_curve_scale")
-        col.operator("bear.rename_object")
-        #col.operator("bear.sierpinsky_cube")
 
+        col.label(text="Object")
+        col.operator("bear.copy_modifiers_to_linked_copies")
         col.operator("bear.reset_mesh_rotation")
+        col.operator("bear.link_and_copy_modifiers")
+        col.operator("bear.camera_setup_ortho")
+        col.operator("bear.rename_object")
+        
+        col.label(text="UV")
+        col.operator("uv.uv_layout_from_obj")
+        col.operator("bear.unwrap_tubes")
+        
+        col.label(text="Mesh")
         col.operator("bear.catmull_edge_slide")
         col.operator("bear.edge_slide_to_center")
         col.operator("bear.bevel_perfect_round")
         col.operator("bear.nice_mesh_spin")
         col.operator("bear.average_edge_length")
-        col.operator("bear.copy_modifiers_to_linked_copies")
-        col.operator("bear.link_and_copy_modifiers")
-        col.operator("bear.camera_setup_ortho")
         col.operator("bear.slice_at_verts")
         col.operator("bear.verts_to_selected")
+
+        col.label(text="Curve")
+        col.operator("bear.branches")
+        col.operator("bear.taper_curve_scale")
+        
+        col.label(text="Material")
         col.operator("bear.material_color_to_vertex_color")
         col.operator("bear.ao_to_vertex_color")
         col.operator("bear.color_ao_mix_to_vertex_color")
@@ -1990,9 +2000,9 @@ class class_bbot_buttons(bpy.types.Panel):
 
         col = layout.column(align=True)
         col.label(text="Modifiers")
-        row = col.row()
-        col.operator("bear.array_setup")
-        col.operator("bear.fancy_array_setup")
+        row = col.row(align=True)
+        row.operator("bear.array_setup")
+        row.operator("bear.fancy_array_setup")
         col.operator("bear.mirror_setup")
         col.operator("bear.bend_setup")
         col.operator("bear.edit_normals_setup")
