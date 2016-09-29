@@ -1440,15 +1440,50 @@ class class_slice_at_verts(bpy.types.Operator):
     """Tooltip Exxxxtravaganza!"""
     bl_idname = "bear.slice_at_verts"
     bl_label = "Slice At Verts"
+    bl_options = {'REGISTER', 'UNDO'}
 
-    bisect_direction = bpy.props.EnumProperty(
-        name="Direction",
-        description="Bisect Direction",
-        items=(('X', "X", "X"),
-               ('Y', "Y", "Y"),
-               ('Z', "Z", "Z"),
-               ),
-        default="X"
+#    spin_angle = FloatProperty(
+#            name="Angle",
+#            description="Width",
+#            min=0.0, max=360.0,
+#            default=360.0,
+#            )
+#
+#    spin_steps = IntProperty(   
+#            name="Steps",
+#            description="Width",
+#            min=1, max=64,
+#            default=8,
+#            )
+    
+    x = bpy.props.BoolProperty(
+        name = "X",
+        description = "Bisect on X axis",
+        default = True
+        )
+    
+    y = bpy.props.BoolProperty(
+        name = "Y",
+        description = "Bisect on Y axis",
+        default = True
+        )
+    
+    z = bpy.props.BoolProperty(
+        name = "Z",
+        description = "Bisect on Z axis",
+        default = True
+        )
+
+    select_original_verts = bpy.props.BoolProperty(
+        name = "Select Original Vertices",
+        description = "Select original vertices after slicing",
+        default = True
+        )
+    
+    select_new_verts = bpy.props.BoolProperty(
+        name = "Select Cuts",
+        description = "Select new vertices after slicing",
+        default = False
         )
 
     @classmethod
@@ -1457,11 +1492,11 @@ class class_slice_at_verts(bpy.types.Operator):
             return True
 
     def execute(self, context):
-        bisect_mesh(context, self.bisect_direction)
+        slice_at_verts(context, self.x, self.y, self.z, self.select_new_verts, self.select_original_verts)
         return {'FINISHED'}
 
 
-def bisect_mesh(context, direction):
+def slice_at_verts(context, x, y, z, select_new_verts, select_original_verts):
     C = bpy.context
     D = bpy.data
 
@@ -1470,31 +1505,43 @@ def bisect_mesh(context, direction):
     bm = bmesh.from_edit_mesh(obj.data)  
 
     selected_verts_locations = []
-    dont_do_these = []
+
     # Get selected verts
     for vert in bm.verts:
         if(vert.select):
             selected_verts_locations.append(vert.co)
+            vert.select = False
 
-    b_dir = (1.0, 0.0, 0.0)
-    if(direction == 'X'):
-        b_dir = (1.0, 0.0, 0.0)
-    elif(direction == 'Y'):
-        b_dir = (0.0, 1.0, 0.0)
-    elif(direction == 'Z'):
-        b_dir = (0.0, 0.0, 1.0)
-    #else:
-    #    return {'FINISHED'}
+    new_verts = []
 
     for loc in selected_verts_locations:
         loc = obj.matrix_world * loc
-        bpy.ops.mesh.select_all(action='SELECT')    
-        bpy.ops.mesh.bisect(plane_co=loc, plane_no=(0.0, 1.0, 0.0), use_fill=False)
-        bpy.ops.mesh.select_all(action='SELECT')    
-        bpy.ops.mesh.bisect(plane_co=loc, plane_no=(1.0, 0.0, 0.0), use_fill=False)
-        bpy.ops.mesh.select_all(action='SELECT')    
-        bpy.ops.mesh.bisect(plane_co=loc, plane_no=(0.0, 0.0, 1.0), use_fill=False)
+        if(x):
+            bpy.ops.mesh.select_all(action='SELECT')    
+            bpy.ops.mesh.bisect(plane_co=loc, plane_no=(1.0, 0.0, 0.0), use_fill=False)
+            if(select_new_verts):
+                new_verts.extend([v for v in bm.verts if v.select])
+        if(y):
+            bpy.ops.mesh.select_all(action='SELECT')    
+            bpy.ops.mesh.bisect(plane_co=loc, plane_no=(0.0, 1.0, 0.0), use_fill=False)
+            if(select_new_verts):
+                new_verts.extend([v for v in bm.verts if v.select])
+        if(z):
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.bisect(plane_co=loc, plane_no=(0.0, 0.0, 1.0), use_fill=False)
+            if(select_new_verts):
+                new_verts.extend([v for v in bm.verts if v.select])
+
         bpy.ops.mesh.select_all(action='DESELECT')
+
+    if(select_new_verts):
+        for vert in new_verts:
+            vert.select = True
+
+    if(select_original_verts):
+        for vert in bm.verts:
+            if(vert.co in selected_verts_locations):
+                vert.select = True
 
     bmesh.update_edit_mesh(obj.data, True)
 
