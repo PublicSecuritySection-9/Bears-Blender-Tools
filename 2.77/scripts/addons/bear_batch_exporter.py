@@ -47,8 +47,8 @@ class ExportObjects(Operator, ExportHelper):
         name="Materials",
         items=(('KEEP', "Keep Original", ""),
                ('CLEAR', "Clear All", ""),
-               ('CONSOLIDATE', "Consolidate", ""),
-               ('CLEAR_WITH_VERTEX_COLOR', "Material To Vertex Color", "")
+               ('CONSOLIDATE', "Consolidate", "")#,
+               #('CLEAR_WITH_VERTEX_COLOR', "Material To Vertex Color", "")
                ),
         default='KEEP',
         )
@@ -370,23 +370,8 @@ def selected_to_single_fbx(context, self, new_name):
             if(obj.type in supported_types):
                 for mat in old_materials[obj]:
                     obj.data.materials.append(mat)
-    elif(self.e_clear_materials == 'CLEAR_WITH_VERTEX_COLOR'):
-        bpy.ops.bear.material_color_to_vertex_color()
-        objects = bpy.context.selected_objects
-        old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects if obj.type in supported_types}
-
-        for obj in objects:
-            if(obj.type in supported_types):
-                obj.data.materials.clear()
-
-        export(self, new_name)
-
-        for obj in objects:
-            if(obj.type in supported_types):
-                for mat in old_materials[obj]:
-                    obj.data.materials.append(mat)
     elif(self.e_clear_materials == 'CONSOLIDATE'):
-        keywords = ['Window', 'Glowing', 'Surface', 'Glass', 'FX']
+        keywords = ['Window', 'Glowing', 'Surface', 'Glass', 'FX', 'Reflective']
         generic_material_name = '__Other'
 
         objects = bpy.context.selected_objects
