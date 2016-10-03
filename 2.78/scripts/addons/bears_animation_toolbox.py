@@ -128,26 +128,29 @@ def export_rigged_character(context, filepath):
 
     original_selected_objects = C.selected_objects
 
-    ao = C.active_object
+    activeObject = C.active_object
 
     for obj in C.selected_objects:
         obj.select = False
 
-    if (ao.type == 'MESH'):
-        characterMesh = ao
-        for modifier in ao.modifiers:
+    if (activeObject.type == 'MESH'):
+        characterMesh = activeObject
+        for modifier in activeObject.modifiers:
             if (modifier.type == 'ARMATURE'):
                 armature = modifier.object
-    elif (ao.type == 'ARMATURE'):
-        armature = ao
+    elif (activeObject.type == 'ARMATURE'):
+        armature = activeObject
         bpy.ops.object.select_grouped(extend=False, type='CHILDREN')
         for obj in C.selected_objects:
             for modifier in obj.modifiers:
                 if(modifier.type == 'ARMATURE' and modifier.object == armature):
                     characterMesh = obj
 
-    original_pose_position = armature.pose_position
-    armature.pose_position = 'REST'
+    print("CHAR MESH", type(characterMesh.data))
+    print("ARMATURE", type(armature.data))
+
+    original_pose_position = armature.data.pose_position
+    armature.data.pose_position = 'REST'
 
     characterMesh.select = True
 
@@ -161,7 +164,7 @@ def export_rigged_character(context, filepath):
     filename = filepath.replace(".fbx", "").replace(".FBX", "") + ".fbx"
     export_selected(filename, False)
 
-    armature.pose_position = 'POSE'
+    armature.data.pose_position = 'POSE'
     armature.select = False
 
     for mat in old_materials:
@@ -171,9 +174,8 @@ def export_rigged_character(context, filepath):
 
     for obj in original_selected_objects:
         obj.select = True
-    
 
-    bpy.context.scene.objects.active = ao
+    bpy.context.scene.objects.active = activeObject
 
 class class_export_rigged_character(bpy.types.Operator, ExportHelper):
     """Toggle deform status for bones not required by mecanim"""
@@ -320,7 +322,7 @@ def hide_unused_bones(context):
 
     obj = bpy.context.active_object
     
-    bones_to_hide = ["DEF-chest", "DEF-f_index.01.L.01", "DEF-f_index.01.L.02", "DEF-f_index.01.R.01", "DEF-f_index.01.R.02", "DEF-f_index.02.L", "DEF-f_index.02.R", "DEF-f_index.03.L", "DEF-f_index.03.R", "DEF-f_middle.01.L.01", "DEF-f_middle.01.L.02", "DEF-f_middle.01.R.01", "DEF-f_middle.01.R.02", "DEF-f_middle.02.L", "DEF-f_middle.02.R", "DEF-f_middle.03.L", "DEF-f_middle.03.R", "DEF-f_pinky.01.L.01", "DEF-f_pinky.01.L.02", "DEF-f_pinky.01.R.01", "DEF-f_pinky.01.R.02", "DEF-f_pinky.02.L", "DEF-f_pinky.02.R", "DEF-f_pinky.03.L", "DEF-f_pinky.03.R", "DEF-f_ring.01.L.01", "DEF-f_ring.01.L.02", "DEF-f_ring.01.R.01", "DEF-f_ring.01.R.02", "DEF-f_ring.02.L", "DEF-f_ring.02.R", "DEF-f_ring.03.L", "DEF-f_ring.03.R", "DEF-foot.L", "DEF-foot.R", "DEF-forearm.01.L", "DEF-forearm.01.R", "DEF-forearm.02.L", "DEF-forearm.02.R", "DEF-hand.L", "DEF-hand.R", "DEF-head", "DEF-hips", "DEF-neck", "DEF-palm.01.L", "DEF-palm.01.R", "DEF-palm.02.L", "DEF-palm.02.R", "DEF-palm.03.L", "DEF-palm.03.R", "DEF-palm.04.L", "DEF-palm.04.R", "DEF-shin.01.L", "DEF-shin.01.R", "DEF-shin.02.L", "DEF-shin.02.R", "DEF-shoulder.L", "DEF-shoulder.R", "DEF-spine", "DEF-thigh.01.L", "DEF-thigh.01.R", "DEF-thigh.02.L", "DEF-thigh.02.R", "DEF-thumb.01.L.01", "DEF-thumb.01.L.02", "DEF-thumb.01.R.01", "DEF-thumb.01.R.02", "DEF-thumb.02.L", "DEF-thumb.02.R", "DEF-thumb.03.L", "DEF-thumb.03.R", "DEF-tie.00", "DEF-tie.01", "DEF-tie.02", "DEF-toe.L", "DEF-toe.R", "DEF-upper_arm.01.L", "DEF-upper_arm.01.R", "DEF-upper_arm.02.L", "DEF-upper_arm.02.R", "ORG-heel.02.L", "ORG-heel.02.R", "ORG-heel.L", "ORG-heel.R", "ORG-palm.01.L", "ORG-palm.01.R", "ORG-palm.02.L", "ORG-palm.02.R", "ORG-palm.03.L", "ORG-palm.03.R", "ORG-palm.04.L", "ORG-palm.04.R"]
+    bones_to_hide = ["DEF-chest", "DEF-f_index.01.L.01", "DEF-f_index.01.L.02", "DEF-f_index.01.R.01", "DEF-f_index.01.R.02", "DEF-f_index.02.L", "DEF-f_index.02.R", "DEF-f_index.03.L", "DEF-f_index.03.R", "DEF-f_middle.01.L.01", "DEF-f_middle.01.L.02", "DEF-f_middle.01.R.01", "DEF-f_middle.01.R.02", "DEF-f_middle.02.L", "DEF-f_middle.02.R", "DEF-f_middle.03.L", "DEF-f_middle.03.R", "DEF-f_pinky.01.L.01", "DEF-f_pinky.01.L.02", "DEF-f_pinky.01.R.01", "DEF-f_pinky.01.R.02", "DEF-f_pinky.02.L", "DEF-f_pinky.02.R", "DEF-f_pinky.03.L", "DEF-f_pinky.03.R", "DEF-f_ring.01.L.01", "DEF-f_ring.01.L.02", "DEF-f_ring.01.R.01", "DEF-f_ring.01.R.02", "DEF-f_ring.02.L", "DEF-f_ring.02.R", "DEF-f_ring.03.L", "DEF-f_ring.03.R", "DEF-foot.L", "DEF-foot.R", "DEF-forearm.01.L", "DEF-forearm.01.R", "DEF-forearm.02.L", "DEF-forearm.02.R", "DEF-hand.L", "DEF-hand.R", "DEF-head", "DEF-hips", "DEF-neck", "DEF-palm.01.L", "DEF-palm.01.R", "DEF-palm.02.L", "DEF-palm.02.R", "DEF-palm.03.L", "DEF-palm.03.R", "DEF-palm.04.L", "DEF-palm.04.R", "DEF-shin.01.L", "DEF-shin.01.R", "DEF-shin.02.L", "DEF-shin.02.R", "DEF-shoulder.L", "DEF-shoulder.R", "DEF-spine", "DEF-thigh.01.L", "DEF-thigh.01.R", "DEF-thigh.02.L", "DEF-thigh.02.R", "DEF-thumb.01.L.01", "DEF-thumb.01.L.02", "DEF-thumb.01.R.01", "DEF-thumb.01.R.02", "DEF-thumb.02.L", "DEF-thumb.02.R", "DEF-thumb.03.L", "DEF-thumb.03.R", "DEF-tie.00", "DEF-tie.01", "DEF-tie.02", "DEF-toe.L", "DEF-toe.R", "DEF-upper_arm.01.L", "DEF-upper_arm.01.R", "DEF-upper_arm.02.L", "DEF-upper_arm.02.R", "ORG-heel.02.L", "ORG-heel.02.R", "ORG-heel.L", "ORG-heel.R", "ORG-palm.01.L", "ORG-palm.01.R", "ORG-palm.02.L", "ORG-palm.02.R", "ORG-palm.03.L", "ORG-palm.03.R", "ORG-palm.04.L", "ORG-palm.04.R", "MCH-elbow_hose_p.R", "elbow_hose.R", "MCH-forearm_hose_p.R", "forearm_hose.R", "MCH-forearm_hose_end_p.R", "forearm_hose_end.R", "MCH-upper_arm_hose_end_p.R", "upper_arm_hose_end.R", "MCH-upper_arm_hose_p.R", "upper_arm_hose.R", "MCH-elbow_hose_p.L", "elbow_hose.L", "MCH-forearm_hose_p.L", "forearm_hose.L", "MCH-forearm_hose_end_p.L", "forearm_hose_end.L", "MCH-upper_arm_hose_end_p.L", "upper_arm_hose_end.L", "MCH-upper_arm_hose_p.L", "upper_arm_hose.L", "MCH-knee_hose_p.L", "knee_hose.L", "MCH-shin_hose_p.L", "shin_hose.L", "MCH-shin_hose_end_p.L", "shin_hose_end.L", "MCH-thigh_hose_end_p.L", "thigh_hose_end.L", "MCH-thigh_hose_p.L", "thigh_hose.L", "MCH-knee_hose_p.R", "knee_hose.R", "MCH-shin_hose_p.R", "shin_hose.R", "MCH-shin_hose_end_p.R", "shin_hose_end.R", "MCH-thigh_hose_end_p.R", "thigh_hose_end.R", "MCH-thigh_hose_p.R", "thigh_hose.R"]
     bones_to_unhide = ["ORG-chest", "ORG-f_index.01.L", "ORG-f_index.01.R", "ORG-f_index.02.L", "ORG-f_index.02.R", "ORG-f_index.03.L", "ORG-f_index.03.R", "ORG-f_middle.01.L", "ORG-f_middle.01.R", "ORG-f_middle.02.L", "ORG-f_middle.02.R", "ORG-f_middle.03.L", "ORG-f_middle.03.R", "ORG-f_pinky.01.L", "ORG-f_pinky.01.R", "ORG-f_pinky.02.L", "ORG-f_pinky.02.R", "ORG-f_pinky.03.L", "ORG-f_pinky.03.R", "ORG-f_ring.01.L", "ORG-f_ring.01.R", "ORG-f_ring.02.L", "ORG-f_ring.02.R", "ORG-f_ring.03.L", "ORG-f_ring.03.R", "ORG-foot.L", "ORG-foot.R", "ORG-forearm.L", "ORG-forearm.R", "ORG-hand.L", "ORG-hand.R", "ORG-head", "ORG-hips", "ORG-neck", "ORG-shin.L", "ORG-shin.R", "ORG-shoulder.L", "ORG-shoulder.R", "ORG-spine", "ORG-thigh.L", "ORG-thigh.R", "ORG-thumb.01.L", "ORG-thumb.01.R", "ORG-thumb.02.L", "ORG-thumb.02.R", "ORG-thumb.03.L", "ORG-thumb.03.R", "ORG-toe.L", "ORG-toe.R", "ORG-upper_arm.L", "ORG-upper_arm.R", "EXTRA-jaw", "EXTRA-eye.R", "EXTRA-eye.L", "OlavChest", "OlavLeftIndex1", "OlavRightIndex1", "OlavLeftIndex2", "OlavRightIndex2", "OlavLeftIndex3", "OlavRightIndex3", "OlavLeftMiddle1", "OlavRightMiddle1", "OlavLeftMiddle2", "OlavRightMiddle2", "OlavLeftMiddle3", "OlavRightMiddle3", "OlavLeftPinkie1", "OlavRightPinkie1", "OlavLeftPinkie2", "OlavRightPinkie2", "OlavLeftPinkie3", "OlavRightPinkie3", "OlavLeftRing1", "OlavRightRing1", "OlavLeftRing2", "OlavRightRing2", "OlavLeftRing3", "OlavRightRing3", "OlavLeftFoot", "OlavRightFoot", "OlavLeftLowerArm", "OlavRightLowerArm", "OlavLeftHand", "OlavRightHand", "OlavHead", "OlavHips", "OlavNeck", "OlavLeftLowerLeg", "OlavRightLowerLeg", "OlavLeftShoulder", "OlavRightShoulder", "OlavSpine", "OlavLeftUpperLeg", "OlavRightUpperLeg", "OlavLeftThumb1", "OlavRightThumb1", "OlavLeftThumb2", "OlavRightThumb2", "OlavLeftThumb3", "OlavRightThumb3", "OlavLeftToes", "OlavRightToes", "OlavLeftUpperArm", "OlavRightUpperArm", "OlavJaw", "OlavRightEye", "OlavLeftEye", "EXTRA-tie.01", "OlavTieBone001", "EXTRA-tie.02", "OlavTieBone002", "EXTRA-tie.03", "OlavTieBone003"]
 
     for bone in bones_to_hide:
@@ -556,7 +558,7 @@ class class_verify_rig_compatibility(bpy.types.Operator):
 
 class class_align_to_bones(bpy.types.Operator):
     bl_idname = "bear.align_to_bones"
-    bl_label = "Object rotation to pose bone rotation"
+    bl_label = "Object -> Pose Bone"
 
     #align_mode = bpy.props.EnumProperty(
     #    name="Align Mode",
@@ -568,11 +570,33 @@ class class_align_to_bones(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not Null
+        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not None
 
     def execute(self, context):
         #if(self.align_mode is 'OBJECTS_TO_POSE_BONE'):
         align_objects_to_pose_bone(context)
+
+        return {'FINISHED'}
+
+class class_align_pose_bone_to_object(bpy.types.Operator):
+    bl_idname = "bear.align_pose_bone_to_object"
+    bl_label = "Pose Bone -> Object"
+
+    #align_mode = bpy.props.EnumProperty(
+    #    name="Align Mode",
+    #    description="How Should Things Be Aligned",
+    #    items=(('OBJECTS_TO_POSE_BONE', "Objects to Pose Bone", "Align selected objects to active pose bone")
+    #           ),
+    #    default="OBJECTS_TO_POSE_BONE"
+    #    )
+
+    @classmethod
+    def poll(cls, context):
+        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not None
+
+    def execute(self, context):
+        #if(self.align_mode is 'OBJECTS_TO_POSE_BONE'):
+        align_pose_bone_to_object(context)
 
         return {'FINISHED'}
 
@@ -585,8 +609,6 @@ def align_objects_to_pose_bone(context):
     for obj in C.selected_objects:
         if(obj == C.active_object):
             continue
-        print(obj.name, obj.rotation_mode)
-        
         loc, rot, scale = pb.matrix.decompose()
         
         if(obj.rotation_mode == 'QUATERNION'):
@@ -599,6 +621,33 @@ def align_objects_to_pose_bone(context):
             
         else:
             print("Rotation mode not supported. Will not align objects!")
+
+def align_pose_bone_to_object(context):
+    print("Aligning objects to pose bone")
+    C = bpy.context
+
+    pb = C.active_pose_bone
+    aligned = False
+
+    for obj in C.selected_objects:
+        if(obj == C.active_object or aligned is True):
+            continue
+
+        loc, rot, scale = obj.matrix_local.decompose()
+        rot = obj.rotation_quaternion
+
+        if(pb.rotation_mode == 'QUATERNION'):
+            print("Aligning quaternion rotations")
+            pb.rotation_quaternion = obj.rotation_quaternion * pb.matrix_basis.decompose()[1]
+            
+        elif(pb.rotation_mode == 'XYZ'):
+            print("Aligning euler rotations")
+            pb.rotation_euler = obj.rotation_euler
+            
+        else:
+            print("Rotation mode not supported. Will not align objects!")
+
+        aligned = True
 
 ##############################################################
 #             TOOL SHELF BUTTONS
@@ -616,6 +665,7 @@ class class_bear_rig_buttons(bpy.types.Panel):
         col = layout.column(align=True)
         col.label(text="Align")
         col.operator("bear.align_to_bones")
+        col.operator("bear.align_pose_bone_to_object")
 
         col = layout.column(align=True)
         col.label(text="Export")
@@ -630,9 +680,9 @@ class class_bear_rig_buttons(bpy.types.Panel):
         col.operator("bear.setup_deformable_bones")
         #col.operator("bear.verify_rig_compatibility")
         row.operator("bear.hide_unused_bones")
-        row.operator("bear.delete_unused_bones")
-        col.operator("bear.rename_bones")
-        col.operator("bear.add_extra_bones")
+        #row.operator("bear.delete_unused_bones")
+        #col.operator("bear.rename_bones")
+        #col.operator("bear.add_extra_bones")
 
 script_classes = [
     class_bear_rig_buttons,
@@ -646,6 +696,7 @@ script_classes = [
     class_export_all_actions,
     class_export_rigged_character,
     class_align_to_bones,
+    class_align_pose_bone_to_object,
     class_make_playblast,
 ]
 

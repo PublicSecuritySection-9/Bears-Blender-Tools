@@ -377,7 +377,7 @@ def selected_to_single_fbx(context, self, new_name):
         objects = bpy.context.selected_objects
 
         old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
-        new_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
+        new_materials = {obj: [mat for mat in obj.data.materials if mat is not None] for obj in objects}
         #new_materials = {}
 
         generic_material = None

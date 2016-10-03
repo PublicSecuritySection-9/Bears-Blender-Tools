@@ -1,15 +1,15 @@
 *
 !/.gitignore
 !*/
-!2.77/scripts/addons/mesh_align_to_curve_view.py
-!2.77/scripts/addons/mesh_align_to_gpencil_view.py
-!2.77/scripts/addons/bear_batch_exporter.py
-!2.77/scripts/addons/bear_menu.py
-!2.77/scripts/addons/bear_node_tools.py
-!2.77/scripts/addons/bear_pies.py
-!2.77/scripts/addons/bears_bag_of_tricks.py
-!2.77/scripts/addons/bears_cleanup_tools.py
-!2.77/scripts/addons/bears_animation_toolbox.py
+!2.78/scripts/addons/mesh_align_to_curve_view.py
+!2.78/scripts/addons/mesh_align_to_gpencil_view.py
+!2.78/scripts/addons/bear_batch_exporter.py
+!2.78/scripts/addons/bear_menu.py
+!2.78/scripts/addons/bear_node_tools.py
+!2.78/scripts/addons/bear_pies.py
+!2.78/scripts/addons/bears_bag_of_tricks.py
+!2.78/scripts/addons/bears_cleanup_tools.py
+!2.78/scripts/addons/bears_animation_toolbox.py
 
 2.76/scripts/addons/blender-xnormal/
 2.76/scripts/addons/cgc-retopology-contours/lib/
