@@ -10,7 +10,6 @@
 !2.78/scripts/addons/bears_bag_of_tricks.py
 !2.78/scripts/addons/bears_cleanup_tools.py
 !2.78/scripts/addons/bears_animation_toolbox.py
-!2.78/config/userpref.blend
 
 2.76/scripts/addons/blender-xnormal/
 2.76/scripts/addons/cgc-retopology-contours/lib/
@@ -24,4 +23,3 @@
 backup277/2.77/scripts/addons/blender-xnormal/
 backup277/2.77/scripts/addons/cgc-retopology-contours/lib/
 backup277/2.77/scripts/addons/cgc-retopology-polystrips/
-
