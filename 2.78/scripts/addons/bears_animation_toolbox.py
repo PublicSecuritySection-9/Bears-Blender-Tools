@@ -573,98 +573,111 @@ class class_verify_rig_compatibility(bpy.types.Operator):
 ##############################################################
 
 
-class class_align_to_bones(bpy.types.Operator):
-    bl_idname = "bear.align_to_bones"
-    bl_label = "Object -> Pose Bone"
-
-    #align_mode = bpy.props.EnumProperty(
-    #    name="Align Mode",
-    #    description="How Should Things Be Aligned",
-    #    items=(('OBJECTS_TO_POSE_BONE', "Objects to Pose Bone", "Align selected objects to active pose bone")
-    #           ),
-    #    default="OBJECTS_TO_POSE_BONE"
-    #    )
+class class_align_objects(bpy.types.Operator):
+    bl_idname = "bear.align_objects"
+    bl_label = "Align Objects"
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not None
+        return len(context.selected_objects) is not 0
 
     def execute(self, context):
-        #if(self.align_mode is 'OBJECTS_TO_POSE_BONE'):
-        align_objects_to_pose_bone(context)
+        align_objects(context)
 
         return {'FINISHED'}
 
-class class_align_pose_bone_to_object(bpy.types.Operator):
-    bl_idname = "bear.align_pose_bone_to_object"
-    bl_label = "Pose Bone -> Object"
 
-    #align_mode = bpy.props.EnumProperty(
-    #    name="Align Mode",
-    #    description="How Should Things Be Aligned",
-    #    items=(('OBJECTS_TO_POSE_BONE', "Objects to Pose Bone", "Align selected objects to active pose bone")
-    #           ),
-    #    default="OBJECTS_TO_POSE_BONE"
-    #    )
+def align_objects(context):
+    print("Aligning objects")
+    C = bpy.context
+    activeObject = C.active_object
+    activePoseBone = C.active_pose_bone
+
+    alignTarget = None
+
+    mode = ""
+
+    if(activePoseBone is not None):
+        mode = "TO_POSE_BONE"
+        alignTarget = activePoseBone
+    elif activeObject is not None:
+        mode = "TO_OBJECT"
+        alignTarget = activeObject
+
+    objectsToAlign = [obj for obj in C.selected_objects if obj != C.active_object]
+
+    poseBonesToAlign = []
+    if(activePoseBone is not None):
+        poseBonesToAlign = [bone for bone in C.selected_pose_bones if bone != activePoseBone]
+
+    if(alignTarget is activePoseBone):
+        for obj in objectsToAlign:
+            obj.matrix_world = alignTarget.matrix
+
+        for bone in poseBonesToAlign:
+            bone.matrix = alignTarget.matrix
+
+    elif(alignTarget is activeObject):
+        for obj in objectsToAlign:
+            obj.matrix_world = alignTarget.matrix_world
+
+
+class class_align_pose_bones(bpy.types.Operator):
+    bl_idname = "bear.align_pose_bones"
+    bl_label = "Align Pose Bones To Object"
 
     @classmethod
     def poll(cls, context):
-        return len(context.selected_objects) is not 0 and bpy.context.active_pose_bone is not None
+        if (bpy.context.active_pose_bone is not None and len(bpy.context.selected_objects) == 2):
+            return True
+        elif (bpy.context.active_pose_bone is not None and len(bpy.context.selected_pose_bones) > 1):
+            return True
+        else:
+            return False
 
     def execute(self, context):
-        #if(self.align_mode is 'OBJECTS_TO_POSE_BONE'):
-        align_pose_bone_to_object(context)
+        align_pose_bones(context)
 
         return {'FINISHED'}
 
-def align_objects_to_pose_bone(context):
-    print("Aligning objects to pose bone")
+
+def align_pose_bones(context):
+    print("Aligning pose bones")
     C = bpy.context
+    activeObject = C.active_object
+    activePoseBone = C.active_pose_bone
 
-    pb = C.active_pose_bone
+    alignTarget = None
 
-    for obj in C.selected_objects:
-        if(obj == C.active_object):
-            continue
-        loc, rot, scale = pb.matrix.decompose()
-        
-        if(obj.rotation_mode == 'QUATERNION'):
-            print("Aligning quaternion rotations")
-            obj.rotation_quaternion = rot
-            
-        elif(obj.rotation_mode == 'XYZ'):
-            print("Aligning euler rotations")
-            obj.rotation_euler = rot.to_euler()
-            
-        else:
-            print("Rotation mode not supported. Will not align objects!")
+    mode = ""
 
-def align_pose_bone_to_object(context):
-    print("Aligning objects to pose bone")
-    C = bpy.context
+    sel = len(C.selected_objects)
 
-    pb = C.active_pose_bone
-    aligned = False
+    otherObject = None
+    print(sel)
+    if (sel == 2):
+        otherObject = [obj for obj in C.selected_objects if obj != activeObject][0]
+        alignTarget = otherObject
+    elif (sel <= 1 and activePoseBone is not None):
+        alignTarget = activePoseBone
+    else:
+        print("Dunno what to do... Please select only ONE other object. You have currently selected", len(C.selected_objects) - 1)
 
-    for obj in C.selected_objects:
-        if(obj == C.active_object or aligned is True):
-            continue
 
-        loc, rot, scale = obj.matrix_local.decompose()
-        rot = obj.rotation_quaternion
+    if(alignTarget == otherObject and otherObject is not None):
+        poseBonesToAlign = [bone for bone in C.selected_pose_bones]
 
-        if(pb.rotation_mode == 'QUATERNION'):
-            print("Aligning quaternion rotations")
-            pb.rotation_quaternion = obj.rotation_quaternion * pb.matrix_basis.decompose()[1]
-            
-        elif(pb.rotation_mode == 'XYZ'):
-            print("Aligning euler rotations")
-            pb.rotation_euler = obj.rotation_euler
-            
-        else:
-            print("Rotation mode not supported. Will not align objects!")
+        for bone in poseBonesToAlign:
+            bone.matrix = alignTarget.matrix_world
 
-        aligned = True
+
+    elif(alignTarget == activePoseBone):
+        poseBonesToAlign = [bone for bone in C.selected_pose_bones if bone != activePoseBone]
+
+        for bone in poseBonesToAlign:
+            scl = bone.scale
+            bone.matrix = alignTarget.matrix
+            bone.scale = scl
 
 ##############################################################
 #             TOOL SHELF BUTTONS
@@ -681,8 +694,8 @@ class class_bear_rig_buttons(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.label(text="Align")
-        col.operator("bear.align_to_bones")
-        col.operator("bear.align_pose_bone_to_object")
+        col.operator("bear.align_objects")
+        col.operator("bear.align_pose_bones")
 
         col = layout.column(align=True)
         col.label(text="Export")
@@ -704,14 +717,12 @@ script_classes = [
     class_verify_rig_compatibility,
     class_setup_deformable_bones,
     class_hide_unused_bones,
-    class_delete_unused_bones,
-    class_rename_bones,
     class_add_extra_bones,
     class_export_single_action,
     class_export_all_actions,
     class_export_rigged_character,
-    class_align_to_bones,
-    class_align_pose_bone_to_object,
+    class_align_objects,
+    class_align_pose_bones,
     class_make_playblast,
 ]
 
