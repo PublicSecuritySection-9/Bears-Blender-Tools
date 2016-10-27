@@ -307,27 +307,19 @@ class class_bear_branches(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
+        sceneGP = bpy.context.scene.grease_pencil
         if bpy.context.mode != 'OBJECT':
             return False
-        elif check_if_gp_exists() == False:
-            return False
+        elif (sceneGP is not None):
+            if(len(sceneGP.layers)>0):
+                if(len(sceneGP.layers[-1].active_frame.strokes) > 0):
+                    return True
         else:
-            return True
+            return False
 
     def execute(self, context):
         bear_branches(context)
         return {'FINISHED'}
-
-    def check_if_gp_exists():
-        sceneGP = bpy.context.scene.grease_pencil
-
-        if(sceneGP is not None):
-            if(len(sceneGP.layers)>0):
-                if(len(sceneGP.layers[-1].active_frame.strokes) > 0):
-                    return True
-
-        return False
-
 
 ##############################################################
 #            TAPER CURVE POINT SCALE
@@ -1887,6 +1879,34 @@ def edit_shape_keys(context):
     #for i in len(obj.data.shape_keys):
     #    print(obj.data.shape_keys[i])
 
+##############################################################
+#            MESH CREATION
+##############################################################
+
+class class_create_hexagon(bpy.types.Operator):
+    """Viewport Color To Diffuse Color!"""
+    bl_idname = "bear.create_hexagon"
+    bl_label = "Hexagon"
+
+    #@classmethod
+    #def poll(cls, context):
+    #    if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+    #        return True
+
+    def execute(self, context):
+        create_hexagon(context)
+        return {'FINISHED'}
+
+
+def create_hexagon(context):
+    C = bpy.context
+    S = bpy.context.scene
+
+    bpy.ops.mesh.primitive_circle_add(vertices=6, fill_type='TRIFAN')
+
+    #for i in len(obj.data.shape_keys):
+    #    print(obj.data.shape_keys[i])
+
 
 
 ##############################################################
@@ -1973,6 +1993,7 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.link_and_copy_modifiers")
         col.operator("bear.camera_setup_ortho")
         col.operator("bear.rename_object")
+        col.operator("bear.create_hexagon")
         
         col.label(text="UV")
         col.operator("uv.uv_layout_from_obj")
@@ -2074,6 +2095,7 @@ script_classes = [
     class_bear_set_vertex_colors_from_edit_mode,
     class_bbot_modifier_buttons,
     class_edit_shape_keys,
+    class_create_hexagon,
     #property_holder,
 ]
 
