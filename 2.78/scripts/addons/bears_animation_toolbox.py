@@ -461,14 +461,8 @@ class class_add_extra_bones(bpy.types.Operator):
 ##############################################################
 
 def make_playblast(context, scene, action, output_folder):
-
-    scene = bpy.context.scene
-
-    armature = bpy.context.active_object
-    action = armature.animation_data.action
-
+    
     # ORIGINAL SETTINGS
-
     original_output_path = scene.render.filepath
 
     original_image_settings_file_format = scene.render.image_settings.file_format
@@ -484,8 +478,7 @@ def make_playblast(context, scene, action, output_folder):
     blend_name = bpy.path.basename(bpy.context.blend_data.filepath).split(".")[0]
     timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
 
-    final_path = output_folder + blend_name + "_" + action.name + "_" + timestamp + "_"
-
+    final_path = output_folder + blend_name + "_" + action.name + "_" + timestamp + "_.mp4"
 
     # APPLY SETTINGS
     scene.render.filepath = final_path
@@ -509,7 +502,7 @@ def make_playblast(context, scene, action, output_folder):
     scene.frame_end = action.frame_range[1]
 
     print("Rendering playblast.\n"+
-        "Output folder: " + final_path + "\n" +
+        "Output: " + final_path + "\n" +
         "Frame range: " + str(action.frame_range)
         )
 
@@ -526,7 +519,6 @@ def make_playblast(context, scene, action, output_folder):
     scene.frame_end = int(original_frame_end)
 
     scene.render.stamp_note_text = original_stamp_note_text
-
     scene.render.use_stamp = original_use_stamp
 
 
@@ -537,10 +529,7 @@ class class_make_playblast(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return True
-        #if(context.active_object is not None):
-        #    if(context.active_object.animation_data.action)
-        #return len(context.selected_objects) is not 0 and context.active_object.animation_data.action is not None
+        return context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
 
@@ -555,6 +544,44 @@ class class_make_playblast(bpy.types.Operator):
 
         subprocess.Popen('explorer ' + output_folder)
 
+        return {'FINISHED'}
+
+class class_make_playblast_from_all_actions(bpy.types.Operator):
+    """Render playblast to folder beside blend file"""
+    bl_idname = "bear.render_playblast_all"
+    bl_label = "Export Playblast (ALL, VERY SLOW)"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object.type == 'ARMATURE'
+
+    def execute(self, context):
+        bpy.ops.wm.save_mainfile()
+
+        start_time = time.clock()
+
+        output_folder = bpy.path.abspath("//") + "Playblast\\"
+
+        armature = bpy.context.active_object
+        scene = bpy.context.scene
+
+        original_action = armature.animation_data.action
+        exported_actions = []
+        # Loop through all actions in blend file and export all with fake user flag on
+        for action in bpy.data.actions:
+            if(action.use_fake_user != True):
+                continue
+            make_playblast(context, scene, action, output_folder)
+            exported_actions.append(action.name)
+
+        armature.animation_data.action = original_action
+        print("\nEXPORTED PLAYBLASTS:")
+        for action in exported_actions:
+            print(action)
+
+        subprocess.Popen('explorer ' + output_folder)
+
+        print("--- %s seconds ---" % (time.clock() - start_time))
         return {'FINISHED'}
 
 def set_frame_range_from_action(action):
@@ -722,6 +749,7 @@ class class_bear_rig_buttons(bpy.types.Panel):
         col.operator("bear.export_rigged_character")
         col.label(text="Render")
         col.operator("bear.render_playblast")
+        col.operator("bear.render_playblast_all")
         col.label(text="Setup")
         row = col.row()
         col.operator("bear.setup_deformable_bones")
@@ -741,6 +769,7 @@ script_classes = [
     class_align_objects,
     class_align_pose_bones,
     class_make_playblast,
+    class_make_playblast_from_all_actions,
 ]
 
 def register():
