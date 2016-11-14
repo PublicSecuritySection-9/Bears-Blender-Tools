@@ -532,9 +532,8 @@ class class_make_playblast(bpy.types.Operator):
         return context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
-
         output_folder = bpy.path.abspath("//") + "Playblast\\"
-
+ 
         scene = bpy.context.scene
 
         armature = bpy.context.active_object
@@ -560,7 +559,9 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
 
         start_time = time.clock()
 
-        output_folder = bpy.path.abspath("//") + "Playblast\\"
+        timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
+
+        output_folder = bpy.path.abspath("//") + "Playblast\\export_all_" + timestamp + "\\"
 
         armature = bpy.context.active_object
         scene = bpy.context.scene
