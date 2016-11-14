@@ -460,7 +460,7 @@ class class_add_extra_bones(bpy.types.Operator):
 #               MAKE PLAYBLAST
 ##############################################################
 
-def make_playblast(context):
+def make_playblast(context, scene, action, output_folder):
 
     scene = bpy.context.scene
 
@@ -469,11 +469,7 @@ def make_playblast(context):
 
     # ORIGINAL SETTINGS
 
-    #original_render_engine = scene.render.engine
-    #original_bake_type = scene.render.bake_type
-    #original_vcol_bake = scene.render.use_bake_to_vertex_color
     original_output_path = scene.render.filepath
-    #original_file_extension = scene.render.file_extension
 
     original_image_settings_file_format = scene.render.image_settings.file_format
     original_ffmpeg_format = scene.render.ffmpeg.format
@@ -481,10 +477,12 @@ def make_playblast(context):
     original_frame_start = scene.frame_start
     original_frame_end = scene.frame_end
 
+    original_stamp_note_text = scene.render.stamp_note_text
+    original_use_stamp = scene.render.use_stamp
+
     # NEW DATA
     blend_name = bpy.path.basename(bpy.context.blend_data.filepath).split(".")[0]
     timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
-    output_folder = bpy.path.abspath("//") + "Playblast\\"
 
     final_path = output_folder + blend_name + "_" + action.name + "_" + timestamp + "_"
 
@@ -493,8 +491,19 @@ def make_playblast(context):
     scene.render.filepath = final_path
     
     scene.render.image_settings.file_format = 'H264'
-    scene.render.ffmpeg.format = 'H264'
+    scene.render.ffmpeg.format = 'MPEG4'
+    scene.render.ffmpeg.codec = 'H264'
     scene.render.ffmpeg.audio_codec = 'AAC'
+
+    scene.render.use_stamp = True
+
+    scene.render.use_stamp_note = True
+    scene.render.use_stamp_time = False
+    scene.render.use_stamp_render_time = False
+    scene.render.use_stamp_camera = False
+    scene.render.use_stamp_scene = False
+
+    scene.render.stamp_note_text = blend_name + "@" + action.name
 
     scene.frame_start = action.frame_range[0]
     scene.frame_end = action.frame_range[1]
@@ -507,7 +516,7 @@ def make_playblast(context):
     # DO THE THINGS
     bpy.ops.render.opengl(animation=True)
 
-    # RESTORE SETTINGS
+    # RESTORE ORIGINAL SETTINGS
     scene.render.filepath = original_output_path
     
     scene.render.image_settings.file_format = original_image_settings_file_format
@@ -516,12 +525,9 @@ def make_playblast(context):
     scene.frame_start = int(original_frame_start)
     scene.frame_end = int(original_frame_end)
 
-    # no worky
-    #poop_path = final_path + str(int(action.frame_range[0])).zfill(4) + "-" + str(int(action.frame_range[1])).zfill(4) + ".avi"
-    #print(poop_path)
-    #subprocess.Popen(r'explorer /select,"' + final_path + str(action.frame_range[0]) + "-" + str(action.frame_range[1]) + ".avi\"")
-    
-    subprocess.Popen('explorer ' + output_folder)
+    scene.render.stamp_note_text = original_stamp_note_text
+
+    scene.render.use_stamp = original_use_stamp
 
 
 class class_make_playblast(bpy.types.Operator):
@@ -537,7 +543,18 @@ class class_make_playblast(bpy.types.Operator):
         #return len(context.selected_objects) is not 0 and context.active_object.animation_data.action is not None
 
     def execute(self, context):
-        make_playblast(context)
+
+        output_folder = bpy.path.abspath("//") + "Playblast\\"
+
+        scene = bpy.context.scene
+
+        armature = bpy.context.active_object
+        action = armature.animation_data.action
+
+        make_playblast(context, scene, action, output_folder)
+
+        subprocess.Popen('explorer ' + output_folder)
+
         return {'FINISHED'}
 
 def set_frame_range_from_action(action):
