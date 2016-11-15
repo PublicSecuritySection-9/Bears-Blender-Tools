@@ -532,9 +532,8 @@ class class_make_playblast(bpy.types.Operator):
         return context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
-
         output_folder = bpy.path.abspath("//") + "Playblast\\"
-
+ 
         scene = bpy.context.scene
 
         armature = bpy.context.active_object
@@ -560,8 +559,11 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
 
         start_time = time.clock()
 
-        output_folder = bpy.path.abspath("//") + "Playblast\\"
+        timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
 
+        output_folder = bpy.path.abspath("//") + "Playblast\\export_all_" + timestamp + "\\"
+
+        subprocess.Popen('explorer ' + output_folder)
         armature = bpy.context.active_object
         scene = bpy.context.scene
 
@@ -571,6 +573,7 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
         for action in bpy.data.actions:
             if(action.use_fake_user != True):
                 continue
+            armature.animation_data.action = action;
             make_playblast(context, scene, action, output_folder)
             exported_actions.append(action.name)
 
@@ -578,8 +581,6 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
         print("\nEXPORTED PLAYBLASTS:")
         for action in exported_actions:
             print(action)
-
-        subprocess.Popen('explorer ' + output_folder)
 
         print("--- %s seconds ---" % (time.clock() - start_time))
         return {'FINISHED'}
