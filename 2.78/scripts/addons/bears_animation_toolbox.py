@@ -490,6 +490,7 @@ def make_playblast(context, scene, action, output_folder):
 
     scene.render.use_stamp = True
 
+    scene.render.stamp_font_size = 24
     scene.render.use_stamp_note = True
     scene.render.use_stamp_time = False
     scene.render.use_stamp_render_time = False
