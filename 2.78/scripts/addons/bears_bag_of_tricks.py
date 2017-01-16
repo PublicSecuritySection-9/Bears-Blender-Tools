@@ -1027,6 +1027,58 @@ class class_bear_unwrap_tubes(bpy.types.Operator):
         bear_unwrap_tubes(context)
         return {'FINISHED'}
 
+##############################################################
+#                  TUBE FROM SELECTION
+##############################################################
+
+def bear_tube_from_edge_selection(context, bevel_depth, bevel_resolution):
+
+    original_obj = bpy.context.edit_object
+    bpy.ops.mesh.duplicate()
+    bpy.ops.mesh.separate(type='SELECTED')
+    original_obj.select = False
+    bpy.context.scene.objects.active = bpy.context.selected_objects[0]
+    curve_obj = bpy.context.active_object
+
+    print(curve_obj)
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+
+    bpy.ops.object.convert(target='CURVE')
+
+    curve = curve_obj.data
+    curve.bevel_depth = bevel_depth
+    curve.bevel_resolution = bevel_resolution
+    curve.fill_mode = 'FULL'
+
+
+class class_bear_tube_from_edge_selection(bpy.types.Operator):
+    """Unwrap Many Tubes"""
+    bl_idname = "bear.tube_from_edge_selection"
+    bl_label = "Tube from edge selection"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    bevel_depth = FloatProperty(
+            name="Curve Thickness",
+            description="Curve Thickness",
+            min=0.0, max=20.0,
+            default=0.1,
+            )
+    bevel_resolution = IntProperty(
+            name="Bevel Resolution",
+            description="Bevel Resolution",
+            min=0, max=8,
+            default=2,
+            )
+
+
+    @classmethod
+    def poll(cls, context):
+       return bpy.context.edit_object and len(bpy.context.selected_objects) == 1
+
+    def execute(self, context):
+        bear_tube_from_edge_selection(context, self.bevel_depth, self.bevel_resolution)
+        return {'FINISHED'}
+
 
 ##############################################################
 #             ONE CLICK AO BAKE FROM OBJ
@@ -1994,6 +2046,7 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.camera_setup_ortho")
         col.operator("bear.rename_object")
         col.operator("bear.create_hexagon")
+        col.operator("bear.tube_from_edge_selection")
         
         col.label(text="UV")
         col.operator("uv.uv_layout_from_obj")
@@ -2066,6 +2119,7 @@ script_classes = [
     class_bear_sierpinsky_cube,
     class_bear_taper_curve_scale,
     class_bear_unwrap_tubes,
+    class_bear_tube_from_edge_selection,
     class_bevel_perfect_round,
     class_buffer_print,
     class_camera_setup_ortho,
