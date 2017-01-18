@@ -89,7 +89,7 @@ class ExportObjects(Operator, ExportHelper):
                    ('-Y', "-Y Forward", ""),
                    ('-Z', "-Z Forward", ""),
                    ),
-            default='-Z',
+            default='Z',
             )
     axis_up = EnumProperty(
             name="Up",
