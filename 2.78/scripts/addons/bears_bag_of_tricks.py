@@ -1712,6 +1712,9 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
     print("use_bake_to_vertex_color =", S.render.use_bake_to_vertex_color)
 
     print("mix_type =", mix_type)
+
+    obj_modifiers = {}
+
     if(mix_type == 'COLOR_ONLY'):
         print("REGULAR COLOR PLEASE BYE")
         for obj in objects:
@@ -1719,6 +1722,16 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
                 print(obj.type)
                 continue
             obj.select = True
+
+            modifiers = {}
+
+            for mod in obj.modifiers:
+                modifiers[mod] = mod.show_render
+
+            obj_modifiers[obj] = modifiers
+
+            for mod in obj.modifiers:
+                mod.show_render = False
 
             if(len(obj.data.vertex_colors) > 0):
                 for l in obj.data.vertex_colors:
@@ -1739,6 +1752,9 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
             obj.data.vertex_colors.new("Col")
             obj.data.vertex_colors["Col"].active_render = True
             bpy.ops.object.bake_image()
+
+            for mod in obj.modifiers:
+                mod.show_render = modifiers[mod]
 
             obj.select = False
 
@@ -1842,6 +1858,11 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
 
     for obj in objects:
         obj.select = True
+
+        modifiers = obj_modifiers[obj];
+
+        for mod in obj_modifiers[obj]:
+            mod.show_render = modifiers[mod]
 
 def multiply_colors(col1, col2):
     return (col1[0] * col2[0], col1[1] * col2[1], col1[2] * col2[2])
