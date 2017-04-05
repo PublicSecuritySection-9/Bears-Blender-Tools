@@ -149,7 +149,7 @@ class class_toggle_stuff(bpy.types.Operator):
 def camera_setup_ortho(context):
 
     C = bpy.context
-    C.scene.camera.location = (0.0, 0.0, 10.0)
+    C.scene.camera.location = C.active_object.location + mathutils.Vector((0.0, 0.0, 10.0))
     C.scene.camera.rotation_euler = (0.0, 0.0, 0.0)
     C.scene.camera.data.type = 'ORTHO'
 
