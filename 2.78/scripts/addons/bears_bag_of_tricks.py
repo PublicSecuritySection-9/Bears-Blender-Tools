@@ -17,6 +17,7 @@ import glob
 import os
 import bpy_extras
 import mathutils
+from mathutils import Vector
 import math
 import bmesh
 import subprocess
@@ -1592,6 +1593,92 @@ def slice_at_verts(context, x, y, z, select_new_verts, select_original_verts):
                 vert.select = True
 
     bmesh.update_edit_mesh(obj.data, True)
+##############################################################
+#                  SLICE CORNER
+##############################################################
+
+class class_slice_corner(bpy.types.Operator):
+    """Tooltip Exxxxtravaganza!"""
+    bl_idname = "bear.slice_corner"
+    bl_label = "Slice Corner"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    select_original_verts = bpy.props.BoolProperty(
+        name = "Select Original Vertices",
+        description = "Select original vertices after slicing",
+        default = True
+        )
+    
+    select_new_verts = bpy.props.BoolProperty(
+        name = "Select Cuts",
+        description = "Select new vertices after slicing",
+        default = False
+        )
+
+    @classmethod
+    def poll(cls, context):
+        if(context.active_object is not None and bpy.context.mode == 'EDIT_MESH'):
+            return True
+
+    def execute(self, context):
+        slice_corner(context, self.select_new_verts, self.select_original_verts)
+        return {'FINISHED'}
+
+
+def slice_corner(context, select_new_verts, select_original_verts):
+    C = bpy.context
+    D = bpy.data
+    r3d = bpy.context.space_data.region_3d
+
+    obj = C.edit_object
+
+    bm = bmesh.from_edit_mesh(obj.data)  
+
+    selected_verts_locations = []
+
+    # Get selected verts
+    for vert in bm.verts:
+        if(vert.select):
+            selected_verts_locations.append(vert.co)
+            vert.select = False
+
+    new_verts = []
+
+    center_of_selection = Vector((0,0,0))
+
+    for loc in selected_verts_locations:
+        center_of_selection += loc;
+
+    center_of_selection /= max(len(selected_verts_locations), 1)
+
+    slice_point = obj.matrix_world * center_of_selection
+
+    slice_point = bpy.context.scene.cursor_location
+
+    view_forward = r3d.view_rotation * Vector((0.0, 0.0, -1.0))
+    view_up = r3d.view_rotation * Vector((0.0, 1.0, 0.0))
+    view_right = r3d.view_rotation * Vector((1.0, 0.0, 0.0))
+
+    diagonal = view_up - view_right
+
+    bpy.ops.mesh.bisect(plane_co=slice_point, plane_no=diagonal, use_fill=False)
+
+
+#    if(select_new_verts):
+#        new_verts.extend([v for v in bm.verts if v.select])
+
+#    bpy.ops.mesh.select_all(action='DESELECT')
+#
+#    if(select_new_verts):
+#        for vert in new_verts:
+#            vert.select = True
+#
+#    if(select_original_verts):
+#        for vert in bm.verts:
+#            if(vert.co in selected_verts_locations):
+#                vert.select = True
+
+    bmesh.update_edit_mesh(obj.data, True)
 
         
 ##############################################################
@@ -2079,8 +2166,9 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.bevel_perfect_round")
         col.operator("bear.nice_mesh_spin")
         col.operator("bear.average_edge_length")
-        col.operator("bear.slice_at_verts")
         col.operator("bear.verts_to_selected")
+        col.operator("bear.slice_at_verts")
+        col.operator("bear.slice_corner")
 
         col.label(text="Curve")
         col.operator("bear.branches")
@@ -2160,6 +2248,7 @@ script_classes = [
     class_save_incremental,
     class_scale_uvs_to_bounds,
     class_slice_at_verts,
+    class_slice_corner,
     class_toggle_stuff,
     class_verts_to_selected,
     class_uv_layout_from_obj,
