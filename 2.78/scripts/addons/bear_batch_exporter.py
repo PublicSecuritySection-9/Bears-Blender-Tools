@@ -394,7 +394,7 @@ def selected_to_single_fbx(context, self, new_name):
             for i, mat in enumerate(new_materials[obj]):
                 for j, keyword in enumerate(keywords):
                     if(mat.name.startswith(keyword)):
-                        new_materials[obj][i] = same_materials[keyword][0]
+                        new_materials[obj][i] = same_materials[keyword][i]
                         break
                     else:
                         new_materials[obj][i] = generic_material
