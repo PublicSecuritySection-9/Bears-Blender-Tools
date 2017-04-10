@@ -349,6 +349,7 @@ class ExportObjects(Operator, ExportHelper):
             obj.select = True
 
         bpy.context.scene.objects.active = active
+        print("Exported", len(selection), "objects with the following settings:", "Keep Materials: ", self.e_clear_materials)
         return {'FINISHED'}
 
 
