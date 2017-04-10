@@ -1813,11 +1813,13 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
             modifiers = {}
 
             for mod in obj.modifiers:
+                if(mod.type != 'DECIMATE'):
+                    continue
                 modifiers[mod] = mod.show_render
 
             obj_modifiers[obj] = modifiers
 
-            for mod in obj.modifiers:
+            for mod in modifiers:
                 mod.show_render = False
 
             if(len(obj.data.vertex_colors) > 0):
@@ -1839,9 +1841,6 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
             obj.data.vertex_colors.new("Col")
             obj.data.vertex_colors["Col"].active_render = True
             bpy.ops.object.bake_image()
-
-            for mod in obj.modifiers:
-                mod.show_render = modifiers[mod]
 
             obj.select = False
 
@@ -1948,7 +1947,7 @@ def material_color_to_vertex_color(context, mix_type='COLOR_ONLY', mix_strength=
 
         modifiers = obj_modifiers[obj];
 
-        for mod in obj_modifiers[obj]:
+        for mod in modifiers.keys():
             mod.show_render = modifiers[mod]
 
 def multiply_colors(col1, col2):
