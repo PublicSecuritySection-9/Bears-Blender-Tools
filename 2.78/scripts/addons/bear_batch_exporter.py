@@ -377,7 +377,10 @@ def selected_to_single_fbx(context, self, new_name):
 
         objects = bpy.context.selected_objects
 
+        # Original materials. Will restore to this at the end of this function.
         old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
+
+        # Material dict that will be modified and massaged.
         new_materials = {obj: [mat for mat in obj.data.materials if mat is not None] for obj in objects}
         #new_materials = {}
 
