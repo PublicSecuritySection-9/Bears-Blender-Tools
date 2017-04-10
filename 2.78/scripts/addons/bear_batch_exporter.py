@@ -50,7 +50,7 @@ class ExportObjects(Operator, ExportHelper):
                ('CONSOLIDATE', "Consolidate", "")#,
                #('CLEAR_WITH_VERTEX_COLOR', "Material To Vertex Color", "")
                ),
-        default='KEEP',
+        default='CONSOLIDATE',
         )
 
     e_decimate_groups = BoolProperty(
