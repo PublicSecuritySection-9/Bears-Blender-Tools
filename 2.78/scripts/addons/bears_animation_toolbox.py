@@ -226,8 +226,8 @@ def export_selected(filename, include_animation=True, override_bake_anim_step=1.
     mesh_smooth_type='OFF',
     use_mesh_edges=False,
     use_tspace=False,
-    use_custom_props=False,
-    add_leaf_bones=False, #Disabledee
+    use_custom_props=True,
+    add_leaf_bones=False, #Disabled
     primary_bone_axis='Y',
     secondary_bone_axis='X',
     use_armature_deform_only=True,
