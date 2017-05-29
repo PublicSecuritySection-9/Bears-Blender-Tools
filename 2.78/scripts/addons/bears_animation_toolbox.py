@@ -32,6 +32,12 @@ from datetime import datetime
 def export_single_action(context, filepath):
 
     armature = bpy.context.active_object
+    print(armature.type)
+    if(armature.type != 'ARMATURE'):
+        for modifier in armature.modifiers:
+            if(modifier.type == 'ARMATURE'):
+                armature = modifier.object
+    print(armature.type)
     action = armature.animation_data.action
     scene = bpy.context.scene
 
@@ -74,12 +80,18 @@ def export_action_internal(context, armature, action, scene, filepath):
 
     # Add dummy object
     # This is done to have control over the final hierarchy in Unity.
-    bpy.ops.object.empty_add(type='PLAIN_AXES')
-    empty = bpy.context.scene.objects[-1]
-    empty.name = "_DUMMY"
+    dummy = bpy.data.objects.new( "MeshPlaceholderEmpty", None )
+    bpy.context.scene.objects.link( dummy )
+
+    original_mode = bpy.context.mode
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
 
     # Prep selection for export
-    empty.select = True
+    original_selected = context.selected_objects
+    for obj in context.selected_objects:
+        obj.select = False
+
+    dummy.select = True
     armature.select = True
 
     armature.animation_data.action = action
@@ -92,10 +104,17 @@ def export_action_internal(context, armature, action, scene, filepath):
 
     # Delete dummy object
     armature.select = False
+    dummy.select = True
     bpy.ops.object.delete()
 
     armature.select = True
     bpy.context.scene.objects.active = armature
+
+    for obj in original_selected:
+        obj.select = True
+
+    bpy.ops.object.mode_set(mode=original_mode, toggle=False)
+
 
 
 class class_export_single_action(bpy.types.Operator, ExportHelper):
