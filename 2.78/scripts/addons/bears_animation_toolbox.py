@@ -1,3 +1,9 @@
+from bpy.props import (#StringProperty,
+                       BoolProperty,
+                       #FloatProperty,
+                       #EnumProperty,
+                       )
+
 bl_info = {
     "name": "Bear's Animation Toolbox",
     "description": "",
@@ -149,7 +155,7 @@ class class_export_all_actions(bpy.types.Operator, ExportHelper):
         export_all_actions(context, self.filepath)
         return {'FINISHED'}
 
-def export_rigged_character(context, filepath):
+def export_rigged_character(context, filepath, clear_materials):
     armature = None
     characterMesh = None
     C = bpy.context
@@ -184,8 +190,11 @@ def export_rigged_character(context, filepath):
 
     #bpy.ops.bear.material_color_to_vertex_color()
 
-    old_materials = [mat for mat in characterMesh.data.materials]
-    characterMesh.data.materials.clear()
+    old_materials = [];
+
+    if(clear_materials):
+        old_materials = [mat for mat in characterMesh.data.materials]
+        characterMesh.data.materials.clear()
 
     armature.select = True
 
@@ -195,8 +204,9 @@ def export_rigged_character(context, filepath):
     armature.data.pose_position = original_pose_position
     armature.select = False
 
-    for mat in old_materials:
-        characterMesh.data.materials.append(mat)
+    if(clear_materials):
+        for mat in old_materials:
+            characterMesh.data.materials.append(mat)
 
     characterMesh.select = False
 
@@ -213,12 +223,18 @@ class class_export_rigged_character(bpy.types.Operator, ExportHelper):
 
     filepath = ""
 
+    clear_materials = BoolProperty(
+            name="Clear Materials",
+            description=("Wipe all materials from the exported mesh."),
+            default=True,
+            )
+
     @classmethod
     def poll(cls, context):
         return len(context.selected_objects) is not 0
 
     def execute(self, context):
-        export_rigged_character(context, self.filepath)
+        export_rigged_character(context, self.filepath, self.clear_materials)
         return {'FINISHED'}
 
 def export_selected(filename, include_animation=True, override_bake_anim_step=1.0):
