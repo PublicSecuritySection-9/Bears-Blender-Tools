@@ -1134,13 +1134,16 @@ class class_copy_image_to_temp_with_alpha(bpy.types.Operator):
     def execute(self, context):
         original_render_format = bpy.context.scene.render.image_settings.file_format
         original_color_mode = bpy.context.scene.render.image_settings.color_mode
+        original_color_depth = bpy.context.scene.render.image_settings.color_depth
 
         bpy.context.scene.render.image_settings.file_format = 'PNG'
         bpy.context.scene.render.image_settings.color_mode = 'RGBA'
+        bpy.context.scene.render.image_settings.color_depth = '16'
         bpy.ops.image.save_as(copy=True, filepath="C:/tmp/clip/clip.png")
 
         bpy.context.scene.render.image_settings.file_format = original_render_format
         bpy.context.scene.render.image_settings.color_mode = original_color_mode
+        bpy.context.scene.render.image_settings.color_depth = original_color_depth
 
         subprocess.call([bpy.context.user_preferences.filepaths.image_editor, 'C:\\tmp\\clip\\clip.png'])
         return {'FINISHED'}
