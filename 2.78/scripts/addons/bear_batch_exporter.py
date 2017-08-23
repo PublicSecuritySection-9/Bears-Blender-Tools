@@ -382,9 +382,7 @@ def selected_to_single_fbx(context, self, new_name):
 
         # Material dict that will be modified and massaged.
         new_materials = {obj: [mat for mat in obj.data.materials if mat is not None] for obj in objects}
-        #new_materials = {}
 
-        generic_material = None
         try:
             generic_material = bpy.data.materials[generic_material_name]
         except KeyError:     
@@ -392,16 +390,13 @@ def selected_to_single_fbx(context, self, new_name):
             generic_material = bpy.data.materials[generic_material_name]
 
         for obj in objects:
-            same_materials = {keyword: [mat for mat in new_materials[obj] if mat.name.startswith(keyword)] for keyword in keywords}
-            #same_materials = {k: v for k, v in same_materials.items() if v != []}
-
-            for i, mat in enumerate(new_materials[obj]):
+            for i, new_mat in enumerate(new_materials[obj]):
+                found_special_material = False
                 for j, keyword in enumerate(keywords):
-                    if(mat.name.startswith(keyword)):
-                        new_materials[obj][i] = same_materials[keyword][i]
-                        break
-                    else:
-                        new_materials[obj][i] = generic_material
+                    if (new_mat.name.startswith(keyword)):
+                        found_special_material = True
+                if not (found_special_material):
+                    new_materials[obj][i] = generic_material
 
         for obj in objects:
             obj.data.materials.clear()
@@ -419,8 +414,6 @@ def selected_to_single_fbx(context, self, new_name):
 
     elif(self.e_clear_materials == 'KEEP'):
         export(self, new_name)
-
-
 
 def export(self, new_name):
 
