@@ -21,6 +21,7 @@ from mathutils import Vector
 import math
 import bmesh
 import subprocess
+from bpy.props import FloatProperty, IntProperty, BoolProperty, FloatVectorProperty
 
 class class_bbotaddonprefs(bpy.types.AddonPreferences):
     bl_idname = __name__
@@ -716,7 +717,7 @@ def bend_setup(context):
     bend.origin = bend_control_object
     bend.angle = 360*deg2rad
 
-    bpy.context.scene.objects.active = ob
+    bpy.context.scene.objects.active = obs
 
 class class_bear_bend_setup(bpy.types.Operator):
     """Initialize a fancy bend modifier!"""
@@ -923,7 +924,7 @@ class class_edge_slide_to_center(bpy.types.Operator):
 #            BEVEL PERFECT ROUND
 ##############################################################
 
-from bpy.props import FloatProperty, IntProperty
+
 
 def bevel_perfect_round(context, bevel_width, bevel_segments):
     ob = bpy.context.edit_object
@@ -1005,6 +1006,89 @@ class class_nice_mesh_spin(bpy.types.Operator):
 
     def execute(self, context):
         nice_mesh_spin(context, self.spin_steps, self.spin_angle)
+        return {'FINISHED'}
+
+    ##############################################################
+    #           MAKE  TUBE  CORNER
+    ##############################################################
+
+def make_tube_corner(context, spin_steps, spin_angle, spin_radius, direction, axis):
+    ob = bpy.context.edit_object
+
+    # Very important line. Makes sure positions of selected verts don't linger from an earlier state.
+    ob.update_from_editmode()
+
+    selected_verts = [v for v in ob.data.vertices if v.select]
+
+    pivot = Vector((0,0,0))
+
+    for vert in selected_verts:
+        pivot = pivot + ob.matrix_world * vert.co
+
+    pivot = pivot / len(selected_verts);
+
+
+
+    # Spin uses radians, input uses degrees. Convert nao!
+    spin_angle = math.radians(spin_angle)
+
+    use_spin_angle = spin_angle
+
+    if(spin_radius < 0):
+        use_spin_angle = -spin_angle
+
+    if(direction == 0):
+        use_spin_angle = -use_spin_angle
+
+    # Spin!
+    bpy.ops.mesh.spin(steps=spin_steps, dupli=False, angle=use_spin_angle,
+                      center=pivot + Vector((0,0,spin_radius)), axis=axis)
+
+
+class class_make_tube_corner(bpy.types.Operator):
+    """Nice Mesh Spin"""
+    bl_idname = "bear.make_tube_corner"
+    bl_label = "Make Tube Corner"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    spin_angle = FloatProperty(
+        name="Angle",
+        description="Angle",
+        min=-360, max=360.0,
+        default=90,
+    )
+
+    spin_radius = FloatProperty(
+        name="Radius",
+        description="Radius",
+        min=-2.0, max=2.0,
+        default=0.25,
+    )
+
+    spin_steps = IntProperty(
+        name="Steps",
+        description="Steps",
+        min=1, max=64,
+        default=8,
+    )
+
+    direction = IntProperty(
+        name="Direction",
+        description="Direction",
+        min=0, max=1,
+        default=0,
+    )
+
+    # Get view axis rotation. Turns out it's the third row of the matrix.
+    view_matrix = bpy.context.region_data.view_matrix
+    axis = (view_matrix[2][0], view_matrix[2][1], view_matrix[2][2])
+
+    @classmethod
+    def poll(cls, context):
+        return bpy.context.edit_object
+
+    def execute(self, context):
+        make_tube_corner(context, self.spin_steps, self.spin_angle, self.spin_radius, self.direction, self.axis)
         return {'FINISHED'}
 
 
@@ -1508,31 +1592,31 @@ class class_slice_at_verts(bpy.types.Operator):
 #            default=8,
 #            )
     
-    x = bpy.props.BoolProperty(
+    x = BoolProperty(
         name = "X",
         description = "Bisect on X axis",
         default = True
         )
     
-    y = bpy.props.BoolProperty(
+    y = BoolProperty(
         name = "Y",
         description = "Bisect on Y axis",
         default = True
         )
     
-    z = bpy.props.BoolProperty(
+    z = BoolProperty(
         name = "Z",
         description = "Bisect on Z axis",
         default = True
         )
 
-    select_original_verts = bpy.props.BoolProperty(
+    select_original_verts = BoolProperty(
         name = "Select Original Vertices",
         description = "Select original vertices after slicing",
         default = True
         )
     
-    select_new_verts = bpy.props.BoolProperty(
+    select_new_verts = BoolProperty(
         name = "Select Cuts",
         description = "Select new vertices after slicing",
         default = False
@@ -1606,13 +1690,13 @@ class class_slice_corner(bpy.types.Operator):
     bl_label = "Slice Corner"
     bl_options = {'REGISTER', 'UNDO'}
 
-    select_original_verts = bpy.props.BoolProperty(
+    select_original_verts = BoolProperty(
         name = "Select Original Vertices",
         description = "Select original vertices after slicing",
         default = True
         )
     
-    select_new_verts = bpy.props.BoolProperty(
+    select_new_verts = BoolProperty(
         name = "Select Cuts",
         description = "Select new vertices after slicing",
         default = False
@@ -2163,6 +2247,8 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.unwrap_tubes")
         
         col.label(text="Mesh")
+        col.operator("bear.tube_from_edge_selection")
+        col.operator("bear.make_tube_corner")
         col.operator("bear.catmull_edge_slide")
         col.operator("bear.edge_slide_to_center")
         col.operator("bear.bevel_perfect_round")
@@ -2244,6 +2330,7 @@ script_classes = [
     class_import_latest_unity_exported_obj,
     class_link_and_copy_modifiers,
     class_nice_mesh_spin,
+    class_make_tube_corner,
     class_one_click_ao_bake_from_obj,
     class_paste_full_transform,
     class_reset_mesh_rotation,
