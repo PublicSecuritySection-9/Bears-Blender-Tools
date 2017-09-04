@@ -170,6 +170,84 @@ class class_camera_setup_ortho(bpy.types.Operator):
     def execute(self, context):
         camera_setup_ortho(context)
         return {'FINISHED'}
+##############################################################
+#               mAKE_STUFFOKOKOKOK
+##############################################################
+
+def pixelate_image_mesh(context, combine_percentage, do_triangulate):
+    C = bpy.context
+    D = bpy.data
+
+    image_editor = None
+    active_image = None
+
+    for manager in D.window_managers:
+        for window in manager.windows:
+            for area in window.screen.areas:
+                if (area.type == 'IMAGE_EDITOR'):
+                    image_editor = area.spaces[0]
+
+    active_image = image_editor.image
+
+    obj = bpy.context.active_object
+    me = obj.data
+
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    bm = bmesh.from_edit_mesh(me)
+
+    dimensions = obj.dimensions
+
+    bpy.ops.mesh.select_all(action='DESELECT')
+    if (do_triangulate):
+        bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+    bpy.ops.mesh.select_random(percent=combine_percentage)
+    bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
+    bpy.ops.mesh.select_all(action='SELECT')
+    uv_layer = bm.loops.layers.uv.verify()
+    bm.faces.layers.tex.verify()  # currently blender needs both layers.
+    # adjust UVs
+    for f in bm.faces:
+        if (f.select):
+            for l in f.loops:
+                luv = l[uv_layer]
+                # apply the location of the vertex as a UV
+                center = f.calc_center_bounds()
+
+                center.x /= dimensions.x
+                center.y /= dimensions.y
+                luv.uv = (center.x, center.y)
+
+    bmesh.update_edit_mesh(me)
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+class class_pixelate_image_mesh(bpy.types.Operator):
+    """Setup camera for rendering textures"""
+    bl_idname = "bear.pixelate_image_mesh"
+    bl_label = "Pixelate Image Mesh"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    combine_percentage = FloatProperty(
+            name="Combine %",
+            description="Percentage of faces to combine",
+            min=0.0, max=100.0,
+            default=10.0,
+            )
+    do_triangulate = BoolProperty(
+            name="Triangulate",
+            description="Triangulate",
+            default=False
+            )
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+
+    def execute(self, context):
+        pixelate_image_mesh(context, self.combine_percentage, self.do_triangulate)
+        return {'FINISHED'}
 
 ##############################################################
 #             APPLY SCALE ON LINKED OBJECTS
@@ -2068,7 +2146,7 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.rename_object")
         col.operator("bear.create_hexagon")
         col.operator("bear.tube_from_edge_selection")
-        
+
         col.label(text="UV")
         col.operator("uv.uv_layout_from_obj")
         col.operator("bear.unwrap_tubes")
@@ -2102,6 +2180,10 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.bend_setup")
         col.operator("bear.edit_normals_setup")
         col.operator("bear.double_sided_solidify_setup")
+
+        col.label(text="Testing")
+        col.operator("bear.pixelate_image_mesh")
+
 
 class class_bbot_menu(bpy.types.Menu):
     bl_label = "Bear class_menu"
@@ -2171,6 +2253,7 @@ script_classes = [
     class_bbot_modifier_buttons,
     class_edit_shape_keys,
     class_create_hexagon,
+    class_pixelate_image_mesh,
     #property_holder,
 ]
 
