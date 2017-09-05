@@ -176,7 +176,7 @@ class class_camera_setup_ortho(bpy.types.Operator):
 #               mAKE_STUFFOKOKOKOK
 ##############################################################
 
-def pixelate_image_mesh(context, combine_percentage, do_triangulate):
+def pixelate_image_mesh(context, combine_percentage, do_triangulate, do_smooth, combine_type):
     C = bpy.context
     D = bpy.data
 
@@ -196,16 +196,46 @@ def pixelate_image_mesh(context, combine_percentage, do_triangulate):
 
     bpy.ops.object.mode_set(mode='EDIT')
 
-    bm = bmesh.from_edit_mesh(me)
-
     dimensions = obj.dimensions
 
-    bpy.ops.mesh.select_all(action='DESELECT')
-    if (do_triangulate):
-        bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
-    bpy.ops.mesh.select_random(percent=combine_percentage)
-    bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
-    bpy.ops.mesh.select_all(action='SELECT')
+    if(combine_type == 0):
+        if (do_triangulate):
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        bpy.ops.mesh.select_random(percent=combine_percentage)
+        bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        pinch_uvs(context, me, dimensions)
+
+    if(combine_type == 1):
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        bpy.ops.mesh.select_random(percent=combine_percentage)
+        bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
+
+        if (do_triangulate):
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        pinch_uvs(context, me, dimensions)
+
+    if(do_smooth > 0.0):
+        bpy.ops.mesh.region_to_loop()
+        bpy.ops.mesh.select_all(action='INVERT')
+        bpy.ops.mesh.vertices_smooth(factor=do_smooth, repeat=1)
+
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+def pinch_uvs(context, editmode_object, dimensions):
+    bm = bmesh.from_edit_mesh(editmode_object)
     uv_layer = bm.loops.layers.uv.verify()
     bm.faces.layers.tex.verify()  # currently blender needs both layers.
     # adjust UVs
@@ -220,10 +250,7 @@ def pixelate_image_mesh(context, combine_percentage, do_triangulate):
                 center.y /= dimensions.y
                 luv.uv = (center.x, center.y)
 
-    bmesh.update_edit_mesh(me)
-
-    bpy.ops.object.mode_set(mode='OBJECT')
-
+    bmesh.update_edit_mesh(editmode_object)
 
 class class_pixelate_image_mesh(bpy.types.Operator):
     """Setup camera for rendering textures"""
@@ -237,10 +264,22 @@ class class_pixelate_image_mesh(bpy.types.Operator):
             min=0.0, max=100.0,
             default=10.0,
             )
+
+    combine_type = IntProperty(
+            name="type",
+            description="type",
+            default=0,
+            )
+
     do_triangulate = BoolProperty(
             name="Triangulate",
             description="Triangulate",
             default=False
+            )
+    do_smooth = FloatProperty(
+            name="Smooth",
+            min=0.0, max=2.0,
+            default=0.0,
             )
 
     @classmethod
@@ -248,7 +287,7 @@ class class_pixelate_image_mesh(bpy.types.Operator):
         return context.active_object is not None
 
     def execute(self, context):
-        pixelate_image_mesh(context, self.combine_percentage, self.do_triangulate)
+        pixelate_image_mesh(context, self.combine_percentage, self.do_triangulate, self.do_smooth, self.combine_type)
         return {'FINISHED'}
 
 ##############################################################
