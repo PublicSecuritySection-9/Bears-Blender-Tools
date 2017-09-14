@@ -172,6 +172,123 @@ class class_camera_setup_ortho(bpy.types.Operator):
     def execute(self, context):
         camera_setup_ortho(context)
         return {'FINISHED'}
+##############################################################
+#               mAKE_STUFFOKOKOKOK
+##############################################################
+
+def pixelate_image_mesh(context, combine_percentage, do_triangulate, do_smooth, combine_type):
+    C = bpy.context
+    D = bpy.data
+
+    image_editor = None
+    active_image = None
+
+    for manager in D.window_managers:
+        for window in manager.windows:
+            for area in window.screen.areas:
+                if (area.type == 'IMAGE_EDITOR'):
+                    image_editor = area.spaces[0]
+
+    active_image = image_editor.image
+
+    obj = bpy.context.active_object
+    me = obj.data
+
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    dimensions = obj.dimensions
+
+    if(combine_type == 0):
+        if (do_triangulate):
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        bpy.ops.mesh.select_random(percent=combine_percentage)
+        bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        pinch_uvs(context, me, dimensions)
+
+    if(combine_type == 1):
+        bpy.ops.mesh.select_all(action='DESELECT')
+
+        bpy.ops.mesh.select_random(percent=combine_percentage)
+        bpy.ops.mesh.dissolve_limited(angle_limit=5.0)
+
+        if (do_triangulate):
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        pinch_uvs(context, me, dimensions)
+
+    if(do_smooth > 0.0):
+        bpy.ops.mesh.region_to_loop()
+        bpy.ops.mesh.select_all(action='INVERT')
+        bpy.ops.mesh.vertices_smooth(factor=do_smooth, repeat=1)
+
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+def pinch_uvs(context, editmode_object, dimensions):
+    bm = bmesh.from_edit_mesh(editmode_object)
+    uv_layer = bm.loops.layers.uv.verify()
+    bm.faces.layers.tex.verify()  # currently blender needs both layers.
+    # adjust UVs
+    for f in bm.faces:
+        if (f.select):
+            for l in f.loops:
+                luv = l[uv_layer]
+                # apply the location of the vertex as a UV
+                center = f.calc_center_bounds()
+
+                center.x /= dimensions.x
+                center.y /= dimensions.y
+                luv.uv = (center.x, center.y)
+
+    bmesh.update_edit_mesh(editmode_object)
+
+class class_pixelate_image_mesh(bpy.types.Operator):
+    """Setup camera for rendering textures"""
+    bl_idname = "bear.pixelate_image_mesh"
+    bl_label = "Pixelate Image Mesh"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    combine_percentage = FloatProperty(
+            name="Combine %",
+            description="Percentage of faces to combine",
+            min=0.0, max=100.0,
+            default=10.0,
+            )
+
+    combine_type = IntProperty(
+            name="type",
+            description="type",
+            default=0,
+            )
+
+    do_triangulate = BoolProperty(
+            name="Triangulate",
+            description="Triangulate",
+            default=False
+            )
+    do_smooth = FloatProperty(
+            name="Smooth",
+            min=0.0, max=2.0,
+            default=0.0,
+            )
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+
+    def execute(self, context):
+        pixelate_image_mesh(context, self.combine_percentage, self.do_triangulate, self.do_smooth, self.combine_type)
+        return {'FINISHED'}
 
 ##############################################################
 #             APPLY SCALE ON LINKED OBJECTS
@@ -1080,12 +1197,17 @@ class class_make_tube_corner(bpy.types.Operator):
     )
 
     # Get view axis rotation. Turns out it's the third row of the matrix.
-    view_matrix = bpy.context.region_data.view_matrix
-    axis = (view_matrix[2][0], view_matrix[2][1], view_matrix[2][2])
+    view_matrix = None
+    axis = (0,1,0)
+    try:
+        view_matrix = bpy.context.region_data.view_matrix
+        axis = (view_matrix[2][0], view_matrix[2][1], view_matrix[2][2])
+    except:
+        print("eh")
 
     @classmethod
     def poll(cls, context):
-        return bpy.context.edit_object
+        return bpy.context.edit_object and bpy.context.region_data is not None
 
     def execute(self, context):
         make_tube_corner(context, self.spin_steps, self.spin_angle, self.spin_radius, self.direction, self.axis)
@@ -2241,7 +2363,7 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.rename_object")
         col.operator("bear.create_hexagon")
         col.operator("bear.tube_from_edge_selection")
-        
+
         col.label(text="UV")
         col.operator("uv.uv_layout_from_obj")
         col.operator("bear.unwrap_tubes")
@@ -2278,6 +2400,10 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.bend_setup")
         col.operator("bear.edit_normals_setup")
         col.operator("bear.double_sided_solidify_setup")
+
+        col.label(text="Testing")
+        col.operator("bear.pixelate_image_mesh")
+
 
 class class_bbot_menu(bpy.types.Menu):
     bl_label = "Bear class_menu"
@@ -2349,6 +2475,7 @@ script_classes = [
     class_bbot_modifier_buttons,
     class_edit_shape_keys,
     class_create_hexagon,
+    class_pixelate_image_mesh,
     #property_holder,
 ]
 
