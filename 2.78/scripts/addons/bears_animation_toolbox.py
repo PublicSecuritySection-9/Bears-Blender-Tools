@@ -14,7 +14,7 @@ bl_info = {
     "warning": '', # used for warning icon and text in addons panel
     "wiki_url": "",
     "tracker_url": "",
-    "category": "3D View"}
+    "category": "Bear"}
 
 import bpy
 #from bpy import *
