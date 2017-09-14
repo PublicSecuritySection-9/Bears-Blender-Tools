@@ -1197,12 +1197,17 @@ class class_make_tube_corner(bpy.types.Operator):
     )
 
     # Get view axis rotation. Turns out it's the third row of the matrix.
-    view_matrix = bpy.context.region_data.view_matrix
-    axis = (view_matrix[2][0], view_matrix[2][1], view_matrix[2][2])
+    view_matrix = None
+    axis = (0,1,0)
+    try:
+        view_matrix = bpy.context.region_data.view_matrix
+        axis = (view_matrix[2][0], view_matrix[2][1], view_matrix[2][2])
+    except:
+        print("eh")
 
     @classmethod
     def poll(cls, context):
-        return bpy.context.edit_object
+        return bpy.context.edit_object and bpy.context.region_data is not None
 
     def execute(self, context):
         make_tube_corner(context, self.spin_steps, self.spin_angle, self.spin_radius, self.direction, self.axis)
