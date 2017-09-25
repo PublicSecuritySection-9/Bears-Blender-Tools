@@ -1,4 +1,7 @@
+#IGNORE ALL THE THINGS
 *
+
+#EXCEPT THESE...
 !/.gitignore
 !*/
 !2.78/scripts/addons/mesh_align_to_curve_view.py
@@ -21,6 +24,8 @@
 !2.79/scripts/addons/bears_cleanup_tools.py
 !2.79/scripts/addons/bears_animation_toolbox.py
 
+#THEN IGNORE THESE THINGS AGAIN:
+
 2.76_old/scripts/addons/blender-xnormal/
 2.76_old/scripts/addons/cgc-retopology-contours/lib/
 2.76_old/scripts/addons/cgc-retopology-polystrips/
@@ -31,6 +36,16 @@
 2.78_old/scripts/addons/cgc-retopology-contours/lib/
 2.78_old/scripts/addons/cgc-retopology-polystrips/
 
+2.76/scripts/addons/blender-xnormal/
+2.76/scripts/addons/cgc-retopology-contours/lib/
+2.76/scripts/addons/cgc-retopology-polystrips/
+2.77/scripts/addons/blender-xnormal/
+2.77/scripts/addons/cgc-retopology-contours/lib/
+2.77/scripts/addons/cgc-retopology-polystrips/
+2.78/scripts/addons/blender-xnormal/
+2.78/scripts/addons/cgc-retopology-contours/lib/
+2.78/scripts/addons/cgc-retopology-polystrips/
+
 #current version
 
 2.79/scripts/addons/blender-xnormal/
@@ -40,7 +55,6 @@
 backup277/2.77/scripts/addons/blender-xnormal/
 backup277/2.77/scripts/addons/cgc-retopology-contours/lib/
 backup277/2.77/scripts/addons/cgc-retopology-polystrips/
-
 
 2.78/scripts/addons/BlenderGIS
 
