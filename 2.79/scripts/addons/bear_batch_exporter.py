@@ -103,6 +103,23 @@ class ExportObjects(Operator, ExportHelper):
             default='Y',
             )
     # 7.4 only
+    apply_scale_options = EnumProperty(
+            items=(('FBX_SCALE_NONE', "All Local",
+                    "Apply custom scaling and units scaling to each object transformation, FBX scale remains at 1.0"),
+                   ('FBX_SCALE_UNITS', "FBX Units Scale",
+                    "Apply custom scaling to each object transformation, and units scaling to FBX scale"),
+                   ('FBX_SCALE_CUSTOM', "FBX Custom Scale",
+                    "Apply custom scaling to FBX scale, and units scaling to each object transformation"),
+                   ('FBX_SCALE_ALL', "FBX All",
+                    "Apply custom scaling and units scaling to FBX scale"),
+                   ),
+            name="Apply Scalings",
+            description="How to apply custom and units scalings in generated FBX file "
+                        "(Blender uses FBX scale to detect units on import, "
+                        "but many other applications do not handle the same way)",
+            default = 'FBX_SCALE_ALL',
+            )
+    # 7.4 only
     bake_space_transform = BoolProperty(
             name="Apply Transform",
             description=("Bake space transform into object data, avoids getting unwanted rotations to objects when "
@@ -163,6 +180,8 @@ class ExportObjects(Operator, ExportHelper):
             description="Only write deforming bones (and non-deforming ones when they have deforming children)",
             default=False,
             )
+
+
     # Anim - 7.4
     bake_anim = BoolProperty(
             name="Baked Animation",
@@ -433,6 +452,7 @@ def export(self, new_name):
     axis_forward = self.axis_forward,
     axis_up = self.axis_up,
     bake_space_transform = self.bake_space_transform,
+    apply_scale_options = self.apply_scale_options,
     use_selection = True,
     global_scale = self.global_scale,
     object_types = self.object_types,
