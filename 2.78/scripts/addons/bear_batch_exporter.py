@@ -244,6 +244,7 @@ class ExportObjects(Operator, ExportHelper):
 
             if(self.e_selected_groups_as_objects):
 
+                # TODO: Make names export correctly. Currently, they might get 001 or 002 appended, depending on other objects in the scene. Store original object and data names before export and reapply them when done.
                 print("Export groups to files, DO merge")
 
                 groups_to_export = []
@@ -261,13 +262,18 @@ class ExportObjects(Operator, ExportHelper):
                 for group in groups_to_export:
                     print(group.name)
                     for obj in group.objects:
-                        obj.select = True
+                        if(obj.type == 'MESH'):
+                            obj.select = True
+                            bpy.context.scene.objects.active = obj
+                        else:
+                            print("Skipping", obj)
 
-                    bpy.context.scene.objects.active = group.objects[0]   
                     bpy.ops.object.duplicate()
                     bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=False, obdata=True, material=False, texture=False, animation=False)
                     bpy.ops.object.convert()
                     bpy.ops.object.join()
+                    bpy.ops.group.objects_remove(group=group.name)
+
                     bpy.context.scene.objects.active = bpy.context.selected_objects[0]
 
                     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
