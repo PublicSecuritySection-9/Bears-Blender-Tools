@@ -1,3 +1,9 @@
+from bpy.props import (#StringProperty,
+                       BoolProperty,
+                       #FloatProperty,
+                       #EnumProperty,
+                       )
+
 bl_info = {
     "name": "Bear's Animation Toolbox",
     "description": "",
@@ -8,7 +14,7 @@ bl_info = {
     "warning": '', # used for warning icon and text in addons panel
     "wiki_url": "",
     "tracker_url": "",
-    "category": "3D View"}
+    "category": "Bear"}
 
 import bpy
 #from bpy import *
@@ -32,6 +38,12 @@ from datetime import datetime
 def export_single_action(context, filepath):
 
     armature = bpy.context.active_object
+    print(armature.type)
+    if(armature.type != 'ARMATURE'):
+        for modifier in armature.modifiers:
+            if(modifier.type == 'ARMATURE'):
+                armature = modifier.object
+    print(armature.type)
     action = armature.animation_data.action
     scene = bpy.context.scene
 
@@ -74,12 +86,18 @@ def export_action_internal(context, armature, action, scene, filepath):
 
     # Add dummy object
     # This is done to have control over the final hierarchy in Unity.
-    bpy.ops.object.empty_add(type='PLAIN_AXES')
-    empty = bpy.context.scene.objects[-1]
-    empty.name = "_DUMMY"
+    dummy = bpy.data.objects.new( "MeshPlaceholderEmpty", None )
+    bpy.context.scene.objects.link( dummy )
+
+    original_mode = bpy.context.mode
+    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
 
     # Prep selection for export
-    empty.select = True
+    original_selected = context.selected_objects
+    for obj in context.selected_objects:
+        obj.select = False
+
+    dummy.select = True
     armature.select = True
 
     armature.animation_data.action = action
@@ -92,10 +110,17 @@ def export_action_internal(context, armature, action, scene, filepath):
 
     # Delete dummy object
     armature.select = False
+    dummy.select = True
     bpy.ops.object.delete()
 
     armature.select = True
     bpy.context.scene.objects.active = armature
+
+    for obj in original_selected:
+        obj.select = True
+
+    bpy.ops.object.mode_set(mode=original_mode, toggle=False)
+
 
 
 class class_export_single_action(bpy.types.Operator, ExportHelper):
@@ -130,7 +155,7 @@ class class_export_all_actions(bpy.types.Operator, ExportHelper):
         export_all_actions(context, self.filepath)
         return {'FINISHED'}
 
-def export_rigged_character(context, filepath):
+def export_rigged_character(context, filepath, clear_materials):
     armature = None
     characterMesh = None
     C = bpy.context
@@ -165,8 +190,11 @@ def export_rigged_character(context, filepath):
 
     #bpy.ops.bear.material_color_to_vertex_color()
 
-    old_materials = [mat for mat in characterMesh.data.materials]
-    characterMesh.data.materials.clear()
+    old_materials = [];
+
+    if(clear_materials):
+        old_materials = [mat for mat in characterMesh.data.materials]
+        characterMesh.data.materials.clear()
 
     armature.select = True
 
@@ -176,8 +204,9 @@ def export_rigged_character(context, filepath):
     armature.data.pose_position = original_pose_position
     armature.select = False
 
-    for mat in old_materials:
-        characterMesh.data.materials.append(mat)
+    if(clear_materials):
+        for mat in old_materials:
+            characterMesh.data.materials.append(mat)
 
     characterMesh.select = False
 
@@ -194,12 +223,18 @@ class class_export_rigged_character(bpy.types.Operator, ExportHelper):
 
     filepath = ""
 
+    clear_materials = BoolProperty(
+            name="Clear Materials",
+            description=("Wipe all materials from the exported mesh."),
+            default=True,
+            )
+
     @classmethod
     def poll(cls, context):
         return len(context.selected_objects) is not 0
 
     def execute(self, context):
-        export_rigged_character(context, self.filepath)
+        export_rigged_character(context, self.filepath, self.clear_materials)
         return {'FINISHED'}
 
 def export_selected(filename, include_animation=True, override_bake_anim_step=1.0):
@@ -226,8 +261,8 @@ def export_selected(filename, include_animation=True, override_bake_anim_step=1.
     mesh_smooth_type='OFF',
     use_mesh_edges=False,
     use_tspace=False,
-    use_custom_props=False,
-    add_leaf_bones=False, #Disabledee
+    use_custom_props=True,
+    add_leaf_bones=False, #Disabled
     primary_bone_axis='Y',
     secondary_bone_axis='X',
     use_armature_deform_only=True,
