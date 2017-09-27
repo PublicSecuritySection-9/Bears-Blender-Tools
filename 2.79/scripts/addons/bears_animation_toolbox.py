@@ -248,6 +248,7 @@ def export_selected(filename, include_animation=True, override_bake_anim_step=1.
     ui_tab='MAIN',
     use_selection=True,
     global_scale=1.0,
+    apply_scale_options = 'FBX_SCALE_ALL',
     apply_unit_scale=False, #Set to false to avoid rig being scaled to 100 in Unity
     bake_space_transform=True,
     object_types={'ARMATURE',
