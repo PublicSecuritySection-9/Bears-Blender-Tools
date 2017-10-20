@@ -172,8 +172,9 @@ class class_camera_setup_ortho(bpy.types.Operator):
     def execute(self, context):
         camera_setup_ortho(context)
         return {'FINISHED'}
+
 ##############################################################
-#               mAKE_STUFFOKOKOKOK
+#            Pixelate image mesh
 ##############################################################
 
 def pixelate_image_mesh(context, combine_percentage, do_triangulate, do_smooth, combine_type):
@@ -288,6 +289,55 @@ class class_pixelate_image_mesh(bpy.types.Operator):
 
     def execute(self, context):
         pixelate_image_mesh(context, self.combine_percentage, self.do_triangulate, self.do_smooth, self.combine_type)
+        return {'FINISHED'}
+
+##############################################################
+#           SHRINK WRAP SELECTED VERTS TO OTHER MESH
+##############################################################
+
+def shrinkwrap_selected_verts(context):
+    C = bpy.context
+    D = bpy.data
+
+    TEMP_SHRINKWRAP_NAME = "__TEMP_SHRINKWRAP"
+    editmode_object = C.edit_object
+
+    targetObject = None
+
+    for obj in C.selected_objects:
+        if(obj.name != editmode_object.name):
+            targetObject = obj
+
+    bpy.ops.object.mode_set(mode='EDIT')
+
+    bpy.ops.object.vertex_group_assign_new()
+    editmode_object.vertex_groups[-1].name = TEMP_SHRINKWRAP_NAME
+
+    shrinkwrap = editmode_object.modifiers.new(TEMP_SHRINKWRAP_NAME, type="SHRINKWRAP")
+    shrinkwrap.target = targetObject
+    shrinkwrap.wrap_method = 'PROJECT'
+    shrinkwrap.use_negative_direction = True
+    shrinkwrap.use_positive_direction = True
+    shrinkwrap.vertex_group = TEMP_SHRINKWRAP_NAME
+    bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=TEMP_SHRINKWRAP_NAME)
+    bpy.ops.object.vertex_group_remove()
+
+    bpy.ops.object.mode_set(mode='EDIT')
+
+class class_shrinkwrap_selected_verts(bpy.types.Operator):
+    """Shrink wrap selected verts"""
+    bl_idname = "bear.shrinkwrap_selected_verts"
+    bl_label = "Shrink wrap selected verts"
+    bl_options = {'REGISTER', 'UNDO'}
+
+
+    @classmethod
+    def poll(cls, context):
+        return context.edit_object is not None and len(bpy.context.selected_objects) == 2
+
+    def execute(self, context):
+        shrinkwrap_selected_verts(context)
         return {'FINISHED'}
 
 ##############################################################
@@ -2379,6 +2429,7 @@ class class_bbot_buttons(bpy.types.Panel):
         col.operator("bear.verts_to_selected")
         col.operator("bear.slice_at_verts")
         col.operator("bear.slice_corner")
+        col.operator("bear.shrinkwrap_selected_verts")
 
         col.label(text="Curve")
         col.operator("bear.branches")
@@ -2476,6 +2527,7 @@ script_classes = [
     class_edit_shape_keys,
     class_create_hexagon,
     class_pixelate_image_mesh,
+    class_shrinkwrap_selected_verts,
     #property_holder,
 ]
 
