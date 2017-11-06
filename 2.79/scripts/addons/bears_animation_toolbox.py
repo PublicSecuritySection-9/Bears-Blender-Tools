@@ -519,7 +519,7 @@ def make_playblast(context, scene, action, output_folder):
     # APPLY SETTINGS
     scene.render.filepath = final_path
     
-    scene.render.image_settings.file_format = 'H264'
+    scene.render.image_settings.file_format = 'FFMPEG'
     scene.render.ffmpeg.format = 'MPEG4'
     scene.render.ffmpeg.codec = 'H264'
     scene.render.ffmpeg.audio_codec = 'AAC'
