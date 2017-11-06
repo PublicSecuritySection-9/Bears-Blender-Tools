@@ -25,6 +25,8 @@
 !2.79/scripts/addons/bears_cleanup_tools.py
 !2.79/scripts/addons/bears_animation_toolbox.py
 
+!2.79/scripts/sharedconfig*
+
 #THEN IGNORE THESE THINGS AGAIN:
 
 2.76_old/scripts/addons/blender-xnormal/
