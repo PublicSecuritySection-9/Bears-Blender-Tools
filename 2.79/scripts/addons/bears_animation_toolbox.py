@@ -35,7 +35,7 @@ from datetime import datetime
 ##############################################################
 #             EXPORT FUNCTIONS
 ##############################################################
-def export_single_action(context, filepath, use_scene_frame_range):
+def export_single_action(context, filepath):
 
     armature = bpy.context.active_object
     print(armature.type)
@@ -47,14 +47,7 @@ def export_single_action(context, filepath, use_scene_frame_range):
     action = armature.animation_data.action
     scene = bpy.context.scene
 
-    # if None, then the action's own start and end frames will be used
-    startFrame = None
-    endFrame = None
-    if(use_scene_frame_range):
-        startFrame = context.scene.frame_start
-        endFrame = context.scene.frame_end
-
-    export_action_internal(context, armature, action, scene, filepath, startFrame, endFrame)
+    export_action_internal(context, armature, action, scene, filepath)
 
 def export_all_actions(context, filepath):
     start_time = time.clock()
@@ -79,10 +72,47 @@ def export_all_actions(context, filepath):
     print("--- %s seconds ---" % (time.clock() - start_time))
 
 
-def export_action_internal(context, armature, action, scene, filepath, startFrame, endFrame):
+def export_action_internal(context, armature, action, scene, filepath):
     # Store original values
     original_frame_start = scene.frame_start
     original_frame_end =   scene.frame_end
+
+    # use action's first and last keyframes as start and end
+    startFrame = None
+    endFrame = None
+
+    # OR use pose markers! If one is found, it will be used as the end point
+
+    pose_markers = sorted(action.pose_markers, key=lambda marker: marker.frame)
+
+    start_marker = None
+    end_marker = None
+
+    num_pose_markers = len(pose_markers)
+
+    if(num_pose_markers == 1):
+        startFrame = 0
+        endFrame = pose_markers[0].frame
+        end_marker = pose_markers[0]
+    elif(num_pose_markers > 1): #if two or more are found, use the first two for in and out points
+        startFrame = pose_markers[0].frame
+        endFrame =   pose_markers[1].frame
+        start_marker = pose_markers[0]
+        end_marker = pose_markers[1]
+
+    if(start_marker is not None):
+        for marker in action.pose_markers:
+            if(marker == start_marker):
+                marker.name = "Start"
+                break
+
+    if(end_marker is not None):
+        for marker in action.pose_markers:
+            if(marker == end_marker):
+                marker.name = "End"
+                break
+
+
 
     if(startFrame is None):
         # Set frame range to action max min
@@ -150,23 +180,7 @@ class class_export_single_action(bpy.types.Operator, ExportHelper):
         return len(context.selected_objects) is not 0
 
     def execute(self, context):
-        export_single_action(context, self.filepath, False)
-        return {'FINISHED'}
-
-class class_export_single_action_using_scene_frame_range(bpy.types.Operator, ExportHelper):
-    """Toggle deform status for bones not required by mecanim"""
-    bl_idname = "bear.export_single_action_using_scene_frame_range"
-    bl_label = "Export Current Action (scene range)"
-    filename_ext = ""
-
-    filepath = ""
-
-    @classmethod
-    def poll(cls, context):
-        return len(context.selected_objects) is not 0
-
-    def execute(self, context):
-        export_single_action(context, self.filepath, True)
+        export_single_action(context, self.filepath)
         return {'FINISHED'}
 
 class class_export_all_actions(bpy.types.Operator, ExportHelper):
@@ -812,7 +826,6 @@ class class_bear_rig_buttons(bpy.types.Panel):
         col = layout.column(align=True)
         col.label(text="Export")
         col.operator("bear.export_single_action")
-        col.operator("bear.export_single_action_using_scene_frame_range")
         col.operator("bear.export_all_actions")
         col.separator()
         col.operator("bear.export_rigged_character")
@@ -833,7 +846,6 @@ script_classes = [
     class_hide_unused_bones,
     class_add_extra_bones,
     class_export_single_action,
-    class_export_single_action_using_scene_frame_range,
     class_export_all_actions,
     class_export_rigged_character,
     class_align_objects,
