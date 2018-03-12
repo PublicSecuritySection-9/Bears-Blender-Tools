@@ -610,7 +610,7 @@ class class_make_playblast(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object.type == 'ARMATURE'
+        return context.active_object is not None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
         output_folder = bpy.path.abspath("//") + "Playblast\\"
@@ -633,7 +633,7 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object.type == 'ARMATURE'
+        return context.active_object is not None and context.active_object.type == 'ARMATURE'
 
     def execute(self, context):
         bpy.ops.wm.save_mainfile()

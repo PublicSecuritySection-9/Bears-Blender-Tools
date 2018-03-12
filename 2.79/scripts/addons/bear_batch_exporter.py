@@ -279,9 +279,18 @@ class ExportObjects(Operator, ExportHelper):
                 bpy.ops.object.select_all(action='DESELECT')
 
                 for group in groups_to_export:
+                    isMesh = False
+                    isCurve = False
+
                     print(group.name)
+
                     for obj in group.objects:
                         if(obj.type == 'MESH'):
+                            isMesh = True
+                            obj.select = True
+                            bpy.context.scene.objects.active = obj
+                        elif(obj.type == 'CURVE'):
+                            isCurve = True
                             obj.select = True
                             bpy.context.scene.objects.active = obj
                         else:
@@ -362,6 +371,9 @@ class ExportObjects(Operator, ExportHelper):
 
             for obj in selection:
 
+                if(obj is None):
+                    continue
+
                 obj.select = True
 
                 name = bpy.path.clean_name(obj.name)
@@ -377,10 +389,26 @@ class ExportObjects(Operator, ExportHelper):
         print("Exported", len(selection), "objects with the following settings:", "Keep Materials: ", self.e_clear_materials)
         return {'FINISHED'}
 
+#def check_if_selection_is_single_hierarchy(context):
+#
+#    done = False
+#    objects = bpy.context.selected_objects
+#
+#    different_hierarchy = []
+#
+#    while not done:
+#        if(objects[-1].parent in objects):
+#            objects = objects[:-1]
+#        else:
+#            different_hierarchy.append(objects[])
+#        if(objects[-1].parent is None and len(objects) is )
 
 def selected_to_single_fbx(context, self, new_name):
 
     supported_types = ['MESH', 'CURVE']
+
+# TODO: If selection is a single hierarchy, move parent object to the center of the scene before exporting, then back again...
+   # is_single_hierarchy = check_if_selection_is_single_hierarchy()
 
     if(self.e_clear_materials == 'CLEAR'):
         objects = bpy.context.selected_objects
@@ -396,17 +424,20 @@ def selected_to_single_fbx(context, self, new_name):
             if(obj.type in supported_types):
                 for mat in old_materials[obj]:
                     obj.data.materials.append(mat)
+
     elif(self.e_clear_materials == 'CONSOLIDATE'):
         keywords = ['Window', 'Glowing', 'Surface', 'Glass', 'FX', 'Reflective']
         generic_material_name = '__Other'
 
         objects = bpy.context.selected_objects
 
+        material_objects = [obj for obj in objects if obj.type in supported_types]
+
         # Original materials. Will restore to this at the end of this function.
-        old_materials = {obj: [mat for mat in obj.data.materials] for obj in objects}
+        old_materials = {obj: [mat for mat in obj.data.materials] for obj in material_objects}
 
         # Material dict that will be modified and massaged.
-        new_materials = {obj: [mat for mat in obj.data.materials if mat is not None] for obj in objects}
+        new_materials = {obj: [mat for mat in obj.data.materials if mat is not None] for obj in material_objects}
 
         try:
             generic_material = bpy.data.materials[generic_material_name]
@@ -414,7 +445,7 @@ def selected_to_single_fbx(context, self, new_name):
             bpy.data.materials.new(generic_material_name)
             generic_material = bpy.data.materials[generic_material_name]
 
-        for obj in objects:
+        for obj in material_objects:
             for i, new_mat in enumerate(new_materials[obj]):
                 found_special_material = False
                 for j, keyword in enumerate(keywords):
@@ -423,14 +454,14 @@ def selected_to_single_fbx(context, self, new_name):
                 if not (found_special_material):
                     new_materials[obj][i] = generic_material
 
-        for obj in objects:
+        for obj in material_objects:
             obj.data.materials.clear()
             for mat in new_materials[obj]:
                 obj.data.materials.append(mat)
 
         export(self, new_name)
 
-        for obj in objects:
+        for obj in material_objects:
             obj.data.materials.clear()
             for mat in old_materials[obj]:
                 obj.data.materials.append(mat)
