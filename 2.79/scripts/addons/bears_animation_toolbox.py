@@ -540,7 +540,7 @@ class class_add_extra_bones(bpy.types.Operator):
 #               MAKE PLAYBLAST
 ##############################################################
 
-def make_playblast(context, scene, action, output_folder):
+def make_playblast(context, scene, action, output_folder, timestamp):
     
     # ORIGINAL SETTINGS
     original_output_path = scene.render.filepath
@@ -556,7 +556,6 @@ def make_playblast(context, scene, action, output_folder):
 
     # NEW DATA
     blend_name = bpy.path.basename(bpy.context.blend_data.filepath).split(".")[0]
-    timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
 
     final_path = output_folder + blend_name + "_" + action.name + "_" + timestamp + "_.mp4"
 
@@ -620,7 +619,8 @@ class class_make_playblast(bpy.types.Operator):
         armature = bpy.context.active_object
         action = armature.animation_data.action
 
-        make_playblast(context, scene, action, output_folder)
+        timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
+        make_playblast(context, scene, action, output_folder, timestamp)
 
         subprocess.Popen('explorer ' + output_folder)
 
@@ -648,6 +648,8 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
         armature = bpy.context.active_object
         scene = bpy.context.scene
 
+        timestamp = datetime.today().strftime('%y%m%d_%H%M%S')
+
         original_action = armature.animation_data.action
         exported_actions = []
         # Loop through all actions in blend file and export all with fake user flag on
@@ -655,7 +657,7 @@ class class_make_playblast_from_all_actions(bpy.types.Operator):
             if(action.use_fake_user != True):
                 continue
             armature.animation_data.action = action;
-            make_playblast(context, scene, action, output_folder)
+            make_playblast(context, scene, action, output_folder, timestamp)
             exported_actions.append(action.name)
 
         armature.animation_data.action = original_action
