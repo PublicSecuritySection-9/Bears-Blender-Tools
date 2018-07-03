@@ -1,5 +1,7 @@
 import bpy
 import os
+import stat
+
 from bpy_extras.io_utils import (ExportHelper,
                                 path_reference_mode,
                                 )
@@ -471,10 +473,22 @@ def selected_to_single_fbx(context, self, new_name):
     elif(self.e_clear_materials == 'KEEP'):
         export(self, new_name)
 
+#found here: http://techarttiki.blogspot.com/2008/08/read-only-windows-files-with-python.html
+def remove_readonly(filePath):
+    fileAtt = os.stat(filePath)[0]
+    if (not fileAtt & stat.S_IWRITE):
+        # File is read-only, so make it writeable
+        os.chmod(filePath, stat.S_IWRITE)
+  #  else: # We don't need this as we only care about removing the read-only attribute right now.
+       # # File is writeable, so make it read-only
+       # os.chmod(filePath, stat.S_IREAD)
+
 def export(self, new_name):
 
     name = bpy.path.clean_name(new_name)
     fn = self.filepath + name + ".fbx"
+
+    remove_readonly(fn)
 
     bpy.ops.export_scene.fbx(
     filepath = fn,
