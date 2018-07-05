@@ -488,7 +488,9 @@ def export(self, new_name):
     name = bpy.path.clean_name(new_name)
     fn = self.filepath + name + ".fbx"
 
-    remove_readonly(fn)
+    # remove read-only attribut if file exists
+    if(os.path.isfile(fn)):
+        remove_readonly(fn)
 
     bpy.ops.export_scene.fbx(
     filepath = fn,
