@@ -31,6 +31,7 @@ from bpy_extras.io_utils import (ExportHelper,
                                 path_reference_mode,
                                 )
 from datetime import datetime
+import stat
 
 #found here: http://techarttiki.blogspot.com/2008/08/read-only-windows-files-with-python.html
 def remove_readonly(filePath):
