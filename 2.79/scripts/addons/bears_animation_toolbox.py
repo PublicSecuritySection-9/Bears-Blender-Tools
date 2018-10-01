@@ -32,6 +32,16 @@ from bpy_extras.io_utils import (ExportHelper,
                                 )
 from datetime import datetime
 
+#found here: http://techarttiki.blogspot.com/2008/08/read-only-windows-files-with-python.html
+def remove_readonly(filePath):
+    fileAtt = os.stat(filePath)[0]
+    if (not fileAtt & stat.S_IWRITE):
+        # File is read-only, so make it writeable
+        os.chmod(filePath, stat.S_IWRITE)
+  #  else: # We don't need this as we only care about removing the read-only attribute right now.
+       # # File is writeable, so make it read-only
+       # os.chmod(filePath, stat.S_IREAD)
+
 ##############################################################
 #             EXPORT FUNCTIONS
 ##############################################################
@@ -282,6 +292,7 @@ class class_export_rigged_character(bpy.types.Operator, ExportHelper):
         return {'FINISHED'}
 
 def export_selected(filename, include_animation=True, override_bake_anim_step=1.0):
+    remove_readonly(filename)
     bpy.ops.export_scene.fbx(
     filepath=filename,
     check_existing=True,
