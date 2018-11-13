@@ -303,7 +303,7 @@ def export_selected(filename, include_animation=True, override_bake_anim_step=1.
     bpy.ops.export_scene.fbx(
         filepath=filename,
         check_existing=True,
-        axis_forward='Z',
+        axis_forward='-Z',
         axis_up='Y',
         filter_glob="*.fbx",
         version='BIN7400',
